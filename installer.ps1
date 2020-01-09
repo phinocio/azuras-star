@@ -216,7 +216,7 @@
                     $configFormGetAPIKey.Controls.Add($confirmAPIKey)
                     $configFormGetAPIKey.ShowDialog()
 
-                    output("Starting manual downloads, this might take a few minutes. This sometimes causes the window to not response even though it's still working. Be patient :)")
+                    output("Starting manual downloads, this might take a few minutes. This sometimes causes the window to not respond even though it's still working. Be patient :)")
 
                     if(!(Test-Path $skyrimPath\skse_loader.exe) -and !(Test-Path "$skyrimPath\d3dx9_42.dll"))
                     {
