@@ -1,4 +1,4 @@
-﻿#Check prerequisites
+#Check prerequisites
     #Is 64-Bit Java installed?
         if(Get-ItemProperty HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\* | Where-Object DisplayName -like "Java*")
         {
@@ -67,6 +67,7 @@
 #Create files and directorys
     #Path to Azura.exe
     $installerPath = (Get-Item .\).FullName
+    $installerSrc = "$installerPath\src"
     #Create downloads folder
     New-Item -ItemType Directory -Path $installerPath\Downloads -Force
     $installerDownloads = (Get-Item $installerPath\Downloads).FullName
@@ -80,7 +81,7 @@
         $configForm.MaximizeBox = $false
         $configForm.MinimizeBox = $false
         $configForm.FormBorderStyle = 'Fixed3D' 
-        $Icon = New-Object system.drawing.icon ("$installerPath\img\azura.ico")
+        $Icon = New-Object system.drawing.icon ("$installerSrc\img\azura.ico")
         $configForm.Icon = $Icon
             
             $configFormOutput = New-Object System.Windows.Forms.RichTextBox
@@ -122,7 +123,7 @@
                 $configFormPreReqsJava.Size = New-Object System.Drawing.Size(100,25)
                 $configFormPreReqsJava.ADD_CLICK(
                 {
-                    Start-Process $installerPath\src\bin\jre-8u231-windows-x64.exe
+                    Start-Process $installerSrc\bin\jre-8u231-windows-x64.exe
                     output("Installing Java")
                 })
                 $configForm.Controls.Add($configFormPreReqsJava)
@@ -146,7 +147,7 @@
                 $configFormPreReqs7zip.Size = New-Object System.Drawing.Size(100,25)
                 $configFormPreReqs7zip.ADD_CLICK(
                 {
-                    Start-Process $installerPath\src\bin\7z1900-x64.exe
+                    Start-Process $installerSrc\bin\7z1900-x64.exe
                     output("Installing 7-Zip")
                 })
                 $configForm.Controls.Add($configFormPreReqs7zip)
@@ -185,59 +186,107 @@
                 $configFormPreReqsPreinstall.Size = New-Object System.Drawing.Size(100,25)
                 $configFormPreReqsPreinstall.ADD_CLICK(
                 {
-                    if(!(Test-Path $skyrimPath\skse_loader.exe) -and (Test-Path "$skyrimPath\d3dx9_42.dll"))
+
+                    output("Getting Nexus API key")
+                    [Windows.Forms.MessageBox]::Show("Some mods need to be downloaded from Nexus, this requires a Nexus Personal API Key which is given to premium Nexus accounts only. This is private to you and we don't save it, we just pass it through to Nexus.`r`n`r`nDO NOT SHARE THIS WITH ANYONE!`r`n`r`nYou can find your Personal API Key at the bottom of the page that will open in your default browser after clicking ok.", "Ultimate Skyrim Install", [Windows.Forms.MessageBoxButtons]::OK, [Windows.Forms.MessageBoxIcon]::Information)
+                    Start-Process "https://www.nexusmods.com/users/myaccount?tab=api%20access"
+                    $configFormGetAPIKey = New-Object System.Windows.Forms.Form
+                    $configFormGetAPIKey.Width = 600
+                    $configFormGetAPIKey.Height = 600
+                    $configFormGetAPIKey.Text = "Ultimate Skyrim Installation - Personal API Key"
+                    $configFormGetAPIKey.Icon = $Icon
+                    $getAPIKey = New-Object System.Windows.Forms.TextBox
+                    $getAPIKey.Top = 10
+                    $getAPIKey.Left = 10
+                    $getAPIKey.Size = New-Object System.Drawing.Size(500, 50)
+                    $getAPIKey.Scrollbars = "Vertical"
+                    $getAPIKey.AutoSize = $false;
+                    $getAPIKey.Multiline = $true
+                    $configFormGetAPIKey.Controls.Add($getAPIKey)
+
+                    $confirmAPIKey = New-Object System.Windows.Forms.Button
+                    $confirmAPIKey.Text = "Continue"
+                    $confirmAPIKey.Top = 100
+                    $confirmAPIKey.Left = 150
+                    $confirmAPIKey.ADD_CLICK(
+                            {
+                                $global:apiKey = $getAPIKey.Text
+                                $configFormGetAPIKey.Close()
+                            })
+                    $configFormGetAPIKey.Controls.Add($confirmAPIKey)
+                    $configFormGetAPIKey.ShowDialog()
+
+                    output("Starting manual downloads, this might take a few minutes. This sometimes causes the window to not respond even though it's still working. Be patient :)")
+
+                    if(!(Test-Path $skyrimPath\skse_loader.exe) -and !(Test-Path "$skyrimPath\d3dx9_42.dll"))
                     {
-                        output("Downloading SKSE")
+                        output("Downloading SKSE and it's preloader...")
                         Invoke-WebRequest -Uri "https://skse.silverlock.org/beta/skse_1_07_03.7z" -OutFile "$installerDownloads\SKSE_install.7z"
-                        Start-Process "https://www.nexusmods.com/Core/Libs/Common/Widgets/DownloadPopUp?id=1000207412&game_id=110"
-                        $SKSEInstalling =$true
-                        [Windows.Forms.MessageBox]::Show("SKSE Preloader must be downloaded manually. The nexus page has been opened in your browser. Please download the file and put it in $installerDownloads. Then press OK.","Ultimate Skyrim Install", [Windows.Forms.MessageBoxButtons]::OK, [Windows.Forms.MessageBoxIcon]::Error)
-                        output("Installing SKSE")
-                        & "$env:ProgramFiles\7-Zip\7z.exe" "x" "$installerPath\Downloads\SKSE_install.7z" "-o$skyrimPath" > $null
+                        $preloaderDownloadLink = Invoke-RestMethod -Uri "https://api.nexusmods.com/v1/games/skyrim/mods/75795/files/1000207412/download_link.json" -Headers @{"apikey"="$apiKey"}
+                        Invoke-WebRequest -Uri $preloaderDownloadLink[0].URI -OutFile "$installerDownloads\SKSEPreloader.zip"
+                        output("Download complete")
+
+                        output("Installing SKSE...")
+                        & "$env:ProgramFiles\7-Zip\7z.exe" "x" "$installerDownloads\SKSE_install.7z" "-o$skyrimPath" > $null
                         foreach($file in (Get-ChildItem -Path "$skyrimPath\skse_1_07_03"))
                         {
                             Copy-Item -Path $file.FullName -Destination "$skyrimPath\" -Force
                         }
-                        Remove-Item "$installerPath\Downloads\SKSE_install.7z"
-                        output("Waiting on SKSE download")
-                        while($SKSEInstalling)
-                        {
-                            if(Test-Path "$installerPath\Downloads\D3DX9_42 - Wrapper v3-75795-3.zip"){$SKSEInstalling = $false}
-                        }
-                        $SKSEzip = Get-Item "$installerPath\Downloads\D3DX9_42 - Wrapper v3-75795-3.zip"
+                        Remove-Item "$installerDownloads\SKSE_install.7z"
+
+
+                        $SKSEzip = Get-Item "$installerDownloads\SKSEPreloader.zip"
                         [System.IO.Compression.ZipFile]::ExtractToDirectory($SKSEzip.FullName, $skyrimPath)
-                    }else{output("SKSE already installed")}
-                    output("Copying ENB files")
-                    Copy-Item -Path $installerPath\src\bin\d3d9.dll -Destination $skyrimPath -Force
-                    Copy-Item -Path $installerPath\src\bin\enbhost.exe -Destination $skyrimPath -Force
-                    Copy-Item -Path $installerPath\src\bin\enblocal.ini -Destination $skyrimPath -Force
+                        Remove-Item "$installerDownloads\SKSEPreloader.zip"
+                        output("Installed SKSE")
+                    }else{output("SKSE already installed") }
+
+                    output("Copying ENB files...")
+                    Copy-Item -Path $installerSrc\bin\d3d9.dll -Destination $skyrimPath -Force
+                    Copy-Item -Path $installerSrc\bin\enbhost.exe -Destination $skyrimPath -Force
+                    Copy-Item -Path $installerSrc\bin\enblocal.ini -Destination $skyrimPath -Force
+                    output("Copied ENB files")
+                    
                     output("Creating install directories")
                     New-Item -ItemType Directory -Path $skyrimPath\US -Force
                     New-Item -ItemType Directory -Path $skyrimPath\US\Utilities -Force
                     New-Item -ItemType Directory -Path $skyrimPath\US\Downloads -Force
-                    foreach($file in (Get-ChildItem -Path "$installerPath\src\ultsky"))
+                    foreach($file in (Get-ChildItem -Path "$installerSrc\ultsky"))
                     {
                         Copy-Item -Path $file.FullName -Destination "$skyrimPath\US\Downloads" -Force
                     }
-                    Copy-Item -Path "$installerPath\src\bin\US 406hf2 Gamepad - LD Hotfix 1.auto" -Destination $skyrimPath\US -Force
-                    Copy-Item -Path "$installerPath\src\bin\US 406hf2 Keyboard - LD Hotfix 1.auto" -Destination $skyrimPath\US -Force
+                    Copy-Item -Path "$installerSrc\bin\US 406hf2 Gamepad - LD Hotfix 1.auto" -Destination $skyrimPath\US -Force
+                    Copy-Item -Path "$installerSrc\bin\US 406hf2 Keyboard - LD Hotfix 1.auto" -Destination $skyrimPath\US -Force
                     if(!(Test-Path -Path $skyrimPath\US\Utilities\TES5Edit.exe))
                     {
-                        output("Downloading TES5Edit")
-                        Start-Process "https://www.nexusmods.com/Core/Libs/Common/Widgets/DownloadPopUp?id=1000309592&game_id=110"
-                        [Windows.Forms.MessageBox]::Show("TES5Edit must be downloaded manually. The nexus page has been opened in your browser. Please download the file and put it in $installerDownloads. Then press OK.","Ultimate Skyrim Install", [Windows.Forms.MessageBoxButtons]::OK, [Windows.Forms.MessageBoxIcon]::Error)
-                        output("Extracting TES5Edit")
-                        & "$env:ProgramFiles\7-Zip\7z.exe" "x" "$installerPath\Downloads\TES5Edit 4_0_3-25859-4-0-3-1575328633.7z" "-o$skyrimPath\US\Utilities" > $null
-                        Remove-Item "$installerPath\Downloads\TES5Edit 4_0_3-25859-4-0-3-1575328633.7z"
+                        output("Downloading TES5Edit from Nexus...")
+                        $TES5EditDownloadLink = Invoke-RestMethod -Uri "https://api.nexusmods.com/v1/games/skyrim/mods/25859/files/1000309592/download_link.json" -Headers @{"apikey"="$apiKey"}
+                        Invoke-WebRequest -Uri $TES5EditDownloadLink[0].URI -OutFile "$installerDownloads\TES5Edit.7z"
+                        output("Downloaded TES5Edit")
+
+                        output("Extracting TES5Edit...")
+                        & "$env:ProgramFiles\7-Zip\7z.exe" "x" "$installerDownloads/TES5Edit.7z" "-o$skyrimPath\US\Utilities" > $null
+                        Remove-Item "$installerDownloads\TES5Edit.7z"
+                        output("Extraxted TES5Edit")
                     }else{output("TES5Edit already installed")}
-                    if(!(Test-Path "$skyrimPath\US\Downloads\NVAC - New Vegas Anti Crash-53635-7-5-1-0.zip") -and !(Test-Path "$skyrimPath\US\Downloads\Wyrmstooth 1.17B.zip"))
+                    
+                    if(!(Test-Path "$skyrimPath\US\Downloads\NVAC - New Vegas Anti Crash-53635-7-5-1-0.zip"))
                     {
-                            output("Downloading Manuals")
-                            Start-Process "https://www.nexusmods.com/Core/Libs/Common/Widgets/DownloadPopUp?game_id=130&id=1000039152&source=FileExpander"
-                            [Windows.Forms.MessageBox]::Show("NVAC must be downloaded manually. The nexus page has been opened in your browser. Please download the file and put it in $installerDownloads. Then press OK.","Ultimate Skyrim Install", [Windows.Forms.MessageBoxButtons]::OK, [Windows.Forms.MessageBoxIcon]::Error)
-                            Copy-Item -Path "$installerDownloads\NVAC - New Vegas Anti Crash-53635-7-5-1-0.zip" -Destination "$skyrimPath\US\Downloads"
-                            Invoke-WebRequest -Uri "https://archive.org/download/Wyrmstooth1.17B/Wyrmstooth%201.17B.zip" -OutFile "$skyrimPath\US\Downloads\Wyrmstooth 1.17B.zip"
-                    }else{output("Manual downloads already installed")}
+                        output("Downloading NVAC...")
+                        $NVACDownloadLink = Invoke-RestMethod -Uri "https://api.nexusmods.com/v1/games/newvegas/mods/53635/files/1000039152/download_link.json" -Headers @{"apikey"="$apiKey"}
+                        Invoke-WebRequest -Uri $NVACDownloadLink[0].URI -OutFile "$skyrimPath\US\Downloads\NVAC - New Vegas Anti Crash-53635-7-5-1-0.zip"
+                        output("Downloaded NVAC")
+
+                    }else{output("NVAC already installed")}
+
+                    if(!(Test-Path "$skyrimPath\US\Downloads\Wyrmstooth 1.17B.zip"))
+                    {
+                        output("Downloading Wyrmstooth...")
+                        Invoke-WebRequest -Uri "https://archive.org/download/Wyrmstooth1.17B/Wyrmstooth%201.17B.zip" -OutFile "$skyrimPath\US\Downloads\Wyrmstooth 1.17B.zip"
+                        output("Downloaded Wyrmstooth")
+
+                    }else{output("NVAC and Wyrmstooth already installed")}
+        
                     output("Getting VideoMemory")
                     [Windows.Forms.MessageBox]::Show("Please enter your RAM amount and VRAM amount in the next window.","Ultimate Skyrim Install", [Windows.Forms.MessageBoxButtons]::OK, [Windows.Forms.MessageBoxIcon]::Information)
                     $configFormGetRam = New-Object System.Windows.Forms.Form
@@ -308,7 +357,7 @@
                                 output("Setting ENB preset")
                                 $configFormENBPreset.SelectedIndex = $PresetIndex
                                 output("Setting VideoMemory in enblocal.ini")
-                                (Get-Content -Path "$installerPath\src\bin\enblocal.ini" -raw) -replace "INSERTRAMHERE",(($RAM + $VRAM) - 2048) | Set-Content "$skyrimPath\enblocal.ini"
+                                (Get-Content -Path "$installerSrc\bin\enblocal.ini" -raw) -replace "INSERTRAMHERE",(($RAM + $VRAM) - 2048) | Set-Content "$skyrimPath\enblocal.ini"
                                 $configFormGetRam.Close()
                             })
                             $configFormGetRam.Controls.Add($confirmRAM)
@@ -369,7 +418,7 @@
                 $startAutomaton.ADD_CLICK(
                 {
                     output("Running Automaton")
-                    Start-Process "$installerPath\src\bin\automaton\Automaton.exe"
+                    Start-Process "$installerSrc\bin\automaton\Automaton.exe"
                     [Windows.Forms.MessageBox]::Show("When Automaton launches, select either Keyboard or Gamepad from $skyrimPath\US and then copy the install and download paths into their respective fields.`r`nAllow Automaton to access your Nexus account and handle NXM links (required). If you are a Nexus premium member, Automaton can download each mod for you automatically by clicking on the switch at the top.`r`nOtherwise, click on the box with the arrow inside next to each mod to go to the download page. You can hover over the mod's name in Automaton to see which specific file needs to be downloaded.`r`nAfter all of the mods have been downloaded, click on 'Install modpack.' After Automaton finishes installing the mods, close it to continue the install process.","Ultimate Skyrim Install", [Windows.Forms.MessageBoxButtons]::OK, [Windows.Forms.MessageBoxIcon]::Information)
                     $automatonIsRunning = $true
                     while($automatonIsRunning)
@@ -387,14 +436,14 @@
                             output("Configuring ENB")
                             $folderName = (Get-ChildItem -Path "$skyrimPath\US" | Where-Object Name -like "US*" | Where-Object Attributes -eq "Directory").Name -replace "\\",""
                             $configFormENBPreset.Enabled = $false
-                            Copy-Item -Path "$installerPath\src\ini\$($configFormENBPreset.SelectedIndex)\Skyrim.ini" -Destination "$skyrimPath\US\$folderName\profiles\$folderName\Skyrim.ini" -Force
-                            Copy-Item -Path "$installerPath\src\ini\$($configFormENBPreset.SelectedIndex)\SkyrimPrefs.ini" -Destination "$skyrimPath\US\$folderName\profiles\$folderName\SkyrimPrefs.ini" -Force
+                            Copy-Item -Path "$installerSrc\ini\$($configFormENBPreset.SelectedIndex)\Skyrim.ini" -Destination "$skyrimPath\US\$folderName\profiles\$folderName\Skyrim.ini" -Force
+                            Copy-Item -Path "$installerSrc\ini\$($configFormENBPreset.SelectedIndex)\SkyrimPrefs.ini" -Destination "$skyrimPath\US\$folderName\profiles\$folderName\SkyrimPrefs.ini" -Force
                             Remove-Item -Path "$skyrimPath\US\$folderName\mods\Snowfall Weathers\ENB Files - empty into Skyrim Directory\enblocal.ini" -ErrorAction SilentlyContinue
                             foreach($file in (Get-ChildItem "$skyrimPath\US\$folderName\mods\Snowfall Weathers\ENB Files - empty into Skyrim Directory"))
                             {
                                 Copy-Item -Path $file.FullName -Destination "$skyrimPath" -Force
                             }
-                            foreach($file in (Get-ChildItem "$installerPath\src\ENB"))
+                            foreach($file in (Get-ChildItem "$installerSrc\ENB"))
                             {
                                 Copy-Item -Path $file.FullName -Destination "$skyrimPath" -Force
                             }
