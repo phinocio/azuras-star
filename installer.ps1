@@ -1,15 +1,6 @@
-﻿[System.Reflection.Assembly]::LoadWithPartialName(“System.Windows.Forms”)
-Add-Type -AssemblyName System.IO.Compression.FileSystem
-
-#Create files and directorys
-
-New-Item -ItemType Directory -Path .\Downloads -Force
-$installerPath = (Get-Item .\).FullName
-$installerDownloads = (Get-Item .\Downloads).FullName
-
-#Check prerequisites
+﻿#Check prerequisites
     #Is 64-Bit Java installed?
-        if(Get-ItemProperty HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\* | ?{$_.DisplayName -like "Java*"})
+        if(Get-ItemProperty HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\* | Where-Object DisplayName -like "Java*")
         {
                 if(Test-Path "$env:ProgramFiles\Java")
                 {
@@ -27,7 +18,7 @@ $installerDownloads = (Get-Item .\Downloads).FullName
             }
 
     #Is 7-Zip installed?
-        if(Get-ItemProperty HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\* | ?{$_.DisplayName -like "7-Zip*"})
+        if(Get-ItemProperty HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\* | Where-Object DisplayName -like "7-Zip*")
         {
                 $7ZipInstalled = $true
             }
@@ -37,11 +28,11 @@ $installerDownloads = (Get-Item .\Downloads).FullName
             }
 
     #Check where it is installed. Have them change the install path if it's in program files.
-        if(Get-ItemProperty HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\* | where DisplayName -eq "The Elder Scrolls V: Skyrim")
+        if(Get-ItemProperty HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\* | Where-Object DisplayName -eq "The Elder Scrolls V: Skyrim")
         {
             try
             {
-                $skyrimPath = Get-ItemProperty HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\* | where DisplayName -eq "The Elder Scrolls V: Skyrim" | Select -ExpandProperty InstallLocation
+                $skyrimPath = Get-ItemProperty HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\* | Where-Object DisplayName -eq "The Elder Scrolls V: Skyrim" | Select-Object -ExpandProperty InstallLocation
             }
             catch
             {
@@ -67,16 +58,29 @@ $installerDownloads = (Get-Item .\Downloads).FullName
             exit
         }
 
+#Add Assemblies
+    #Windows Forms
+    Add-Type -AssemblyName System.Windows.Forms
+    #Zip Compression
+    Add-Type -AssemblyName System.IO.Compression.FileSystem
+
+#Create files and directorys
+    #Path to Azura.exe
+    $installerPath = (Get-Item .\).FullName
+    #Create downloads folder
+    New-Item -ItemType Directory -Path $installerPath\Downloads -Force
+    $installerDownloads = (Get-Item $installerPath\Downloads).FullName
 
 #Configure and install prereqs
+    #Root Form window
     $configForm = New-Object System.Windows.Forms.Form
         $configForm.Width = 820
         $configForm.Height = 665
-        $configForm.Text = "Ultimate Skyrim Install"
+        $configForm.Text = "Azura's Star"
         $configForm.MaximizeBox = $false
         $configForm.MinimizeBox = $false
         $configForm.FormBorderStyle = 'Fixed3D' 
-        $Icon = [system.drawing.icon]::ExtractAssociatedIcon("$skyrimPath\TESV.exe")
+        $Icon = New-Object system.drawing.icon ("$installerPath\img\azura.ico")
         $configForm.Icon = $Icon
             
             $configFormOutput = New-Object System.Windows.Forms.RichTextBox
@@ -118,7 +122,7 @@ $installerDownloads = (Get-Item .\Downloads).FullName
                 $configFormPreReqsJava.Size = New-Object System.Drawing.Size(100,25)
                 $configFormPreReqsJava.ADD_CLICK(
                 {
-                    start .\src\bin\jre-8u231-windows-x64.exe
+                    Start-Process $installerPath\src\bin\jre-8u231-windows-x64.exe
                     output("Installing Java")
                 })
                 $configForm.Controls.Add($configFormPreReqsJava)
@@ -142,7 +146,7 @@ $installerDownloads = (Get-Item .\Downloads).FullName
                 $configFormPreReqs7zip.Size = New-Object System.Drawing.Size(100,25)
                 $configFormPreReqs7zip.ADD_CLICK(
                 {
-                    start .\src\bin\7z1900-x64.exe
+                    Start-Process $installerPath\src\bin\7z1900-x64.exe
                     output("Installing 7-Zip")
                 })
                 $configForm.Controls.Add($configFormPreReqs7zip)
@@ -156,8 +160,8 @@ $installerDownloads = (Get-Item .\Downloads).FullName
                 {
                     [Windows.Forms.MessageBox]::Show("When Skyrim launches, let it automatically detect your settings, then launch to the main menu. Then you can exit Skyrim and come back here to run the Preinstall.","Ultimate Skyrim Install", [Windows.Forms.MessageBoxButtons]::OK, [Windows.Forms.MessageBoxIcon]::Information)
                     output("Launching Skyrim for first time set up")
-                    $steamPath = (Get-ItemProperty HKLM:\Software\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall\* | where DisplayName -Like "Steam" | select -ExpandProperty UninstallString) -replace "uninstall.exe","steam.exe"
-                    start $steamPath -ArgumentList "-applaunch 72850"
+                    $steamPath = (Get-ItemProperty HKLM:\Software\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall\* | Where-Object DisplayName -Like "Steam" | Select-Object -ExpandProperty UninstallString) -replace "uninstall.exe","steam.exe"
+                    Start-Process $steamPath -ArgumentList "-applaunch 72850"
                     $configFormPreReqsSkyrim.Enabled = $false
                     if($javaInstalled -and $7ZipInstalled)
                     {
@@ -185,51 +189,51 @@ $installerDownloads = (Get-Item .\Downloads).FullName
                     {
                         output("Downloading SKSE")
                         Invoke-WebRequest -Uri "https://skse.silverlock.org/beta/skse_1_07_03.7z" -OutFile "$installerDownloads\SKSE_install.7z"
-                        start "https://www.nexusmods.com/Core/Libs/Common/Widgets/DownloadPopUp?id=1000207412&game_id=110"
+                        Start-Process "https://www.nexusmods.com/Core/Libs/Common/Widgets/DownloadPopUp?id=1000207412&game_id=110"
                         $SKSEInstalling =$true
                         [Windows.Forms.MessageBox]::Show("SKSE Preloader must be downloaded manually. The nexus page has been opened in your browser. Please download the file and put it in $installerDownloads. Then press OK.","Ultimate Skyrim Install", [Windows.Forms.MessageBoxButtons]::OK, [Windows.Forms.MessageBoxIcon]::Error)
                         output("Installing SKSE")
-                        & "$env:ProgramFiles\7-Zip\7z.exe" "x" ".\Downloads\SKSE_install.7z" "-o$skyrimPath" > $null
+                        & "$env:ProgramFiles\7-Zip\7z.exe" "x" "$installerPath\Downloads\SKSE_install.7z" "-o$skyrimPath" > $null
                         foreach($file in (Get-ChildItem -Path "$skyrimPath\skse_1_07_03"))
                         {
                             Copy-Item -Path $file.FullName -Destination "$skyrimPath\" -Force
                         }
-                        Remove-Item ".\Downloads\SKSE_install.7z"
+                        Remove-Item "$installerPath\Downloads\SKSE_install.7z"
                         output("Waiting on SKSE download")
                         while($SKSEInstalling)
                         {
-                            if(Test-Path ".\Downloads\D3DX9_42 - Wrapper v3-75795-3.zip"){$SKSEInstalling = $false}
+                            if(Test-Path "$installerPath\Downloads\D3DX9_42 - Wrapper v3-75795-3.zip"){$SKSEInstalling = $false}
                         }
-                        $SKSEzip = Get-Item ".\Downloads\D3DX9_42 - Wrapper v3-75795-3.zip"
+                        $SKSEzip = Get-Item "$installerPath\Downloads\D3DX9_42 - Wrapper v3-75795-3.zip"
                         [System.IO.Compression.ZipFile]::ExtractToDirectory($SKSEzip.FullName, $skyrimPath)
                     }else{output("SKSE already installed")}
                     output("Copying ENB files")
-                    Copy-Item -Path .\src\bin\d3d9.dll -Destination $skyrimPath -Force
-                    Copy-Item -Path .\src\bin\enbhost.exe -Destination $skyrimPath -Force
-                    Copy-Item -Path .\src\bin\enblocal.ini -Destination $skyrimPath -Force
+                    Copy-Item -Path $installerPath\src\bin\d3d9.dll -Destination $skyrimPath -Force
+                    Copy-Item -Path $installerPath\src\bin\enbhost.exe -Destination $skyrimPath -Force
+                    Copy-Item -Path $installerPath\src\bin\enblocal.ini -Destination $skyrimPath -Force
                     output("Creating install directories")
                     New-Item -ItemType Directory -Path $skyrimPath\US -Force
                     New-Item -ItemType Directory -Path $skyrimPath\US\Utilities -Force
                     New-Item -ItemType Directory -Path $skyrimPath\US\Downloads -Force
-                    foreach($file in (Get-ChildItem -Path ".\src\ultsky"))
+                    foreach($file in (Get-ChildItem -Path "$installerPath\src\ultsky"))
                     {
                         Copy-Item -Path $file.FullName -Destination "$skyrimPath\US\Downloads" -Force
                     }
-                    Copy-Item -Path '.\src\bin\US 406hf2 Gamepad - LD Hotfix 1.auto' -Destination $skyrimPath\US -Force
-                    Copy-Item -Path '.\src\bin\US 406hf2 Keyboard - LD Hotfix 1.auto' -Destination $skyrimPath\US -Force
+                    Copy-Item -Path "$installerPath\src\bin\US 406hf2 Gamepad - LD Hotfix 1.auto" -Destination $skyrimPath\US -Force
+                    Copy-Item -Path "$installerPath\src\bin\US 406hf2 Keyboard - LD Hotfix 1.auto" -Destination $skyrimPath\US -Force
                     if(!(Test-Path -Path $skyrimPath\US\Utilities\TES5Edit.exe))
                     {
                         output("Downloading TES5Edit")
-                        start "https://www.nexusmods.com/Core/Libs/Common/Widgets/DownloadPopUp?id=1000309592&game_id=110"
+                        Start-Process "https://www.nexusmods.com/Core/Libs/Common/Widgets/DownloadPopUp?id=1000309592&game_id=110"
                         [Windows.Forms.MessageBox]::Show("TES5Edit must be downloaded manually. The nexus page has been opened in your browser. Please download the file and put it in $installerDownloads. Then press OK.","Ultimate Skyrim Install", [Windows.Forms.MessageBoxButtons]::OK, [Windows.Forms.MessageBoxIcon]::Error)
                         output("Extracting TES5Edit")
-                        & "$env:ProgramFiles\7-Zip\7z.exe" "x" ".\Downloads\TES5Edit 4_0_3-25859-4-0-3-1575328633.7z" "-o$skyrimPath\US\Utilities" > $null
-                        Remove-Item ".\Downloads\TES5Edit 4_0_3-25859-4-0-3-1575328633.7z"
+                        & "$env:ProgramFiles\7-Zip\7z.exe" "x" "$installerPath\Downloads\TES5Edit 4_0_3-25859-4-0-3-1575328633.7z" "-o$skyrimPath\US\Utilities" > $null
+                        Remove-Item "$installerPath\Downloads\TES5Edit 4_0_3-25859-4-0-3-1575328633.7z"
                     }else{output("TES5Edit already installed")}
                     if(!(Test-Path "$skyrimPath\US\Downloads\NVAC - New Vegas Anti Crash-53635-7-5-1-0.zip") -and !(Test-Path "$skyrimPath\US\Downloads\Wyrmstooth 1.17B.zip"))
                     {
                             output("Downloading Manuals")
-                            start "https://www.nexusmods.com/Core/Libs/Common/Widgets/DownloadPopUp?game_id=130&id=1000039152&source=FileExpander"
+                            Start-Process "https://www.nexusmods.com/Core/Libs/Common/Widgets/DownloadPopUp?game_id=130&id=1000039152&source=FileExpander"
                             [Windows.Forms.MessageBox]::Show("NVAC must be downloaded manually. The nexus page has been opened in your browser. Please download the file and put it in $installerDownloads. Then press OK.","Ultimate Skyrim Install", [Windows.Forms.MessageBoxButtons]::OK, [Windows.Forms.MessageBoxIcon]::Error)
                             Copy-Item -Path "$installerDownloads\NVAC - New Vegas Anti Crash-53635-7-5-1-0.zip" -Destination "$skyrimPath\US\Downloads"
                             Invoke-WebRequest -Uri "https://archive.org/download/Wyrmstooth1.17B/Wyrmstooth%201.17B.zip" -OutFile "$skyrimPath\US\Downloads\Wyrmstooth 1.17B.zip"
@@ -304,14 +308,14 @@ $installerDownloads = (Get-Item .\Downloads).FullName
                                 output("Setting ENB preset")
                                 $configFormENBPreset.SelectedIndex = $PresetIndex
                                 output("Setting VideoMemory in enblocal.ini")
-                                (Get-Content -Path ".\src\bin\enblocal.ini" -raw) -replace "INSERTRAMHERE",(($RAM + $VRAM) - 2048) | Set-Content "$skyrimPath\enblocal.ini"
+                                (Get-Content -Path "$installerPath\src\bin\enblocal.ini" -raw) -replace "INSERTRAMHERE",(($RAM + $VRAM) - 2048) | Set-Content "$skyrimPath\enblocal.ini"
                                 $configFormGetRam.Close()
                             })
                             $configFormGetRam.Controls.Add($confirmRAM)
                         $configFormGetRam.ShowDialog()
                     [Windows.Forms.MessageBox]::Show("Due to the size of DynDOLOD, it must be downloaded manually. You will be directed to the download page. Please drag and drop the file into the downloads folder that will open when you hit OK","Ultimate Skyrim Install", [Windows.Forms.MessageBoxButtons]::OK, [Windows.Forms.MessageBoxIcon]::Information)
-                    start "https://mega.nz/#!SANlQY7R!deorWwQBDDw4GoHYfJ-7NJVOWQ1U-KsoH1HrdG4PFaI"
-                    start "$skyrimPath\US\Downloads"
+                    Start-Process "https://mega.nz/#!SANlQY7R!deorWwQBDDw4GoHYfJ-7NJVOWQ1U-KsoH1HrdG4PFaI"
+                    Start-Process "$skyrimPath\US\Downloads"
                     [Windows.Forms.MessageBox]::Show("Now you can run Automaton!","Ultimate Skyrim Install", [Windows.Forms.MessageBoxButtons]::OK, [Windows.Forms.MessageBoxIcon]::Information)
                     output("Ready to run Automaton! Double check your settings and rerun Preinstall if you need to change something")
                     $startAutomaton.Enabled = $true
@@ -365,12 +369,12 @@ $installerDownloads = (Get-Item .\Downloads).FullName
                 $startAutomaton.ADD_CLICK(
                 {
                     output("Running Automaton")
-                    start '.\src\bin\automaton\Automaton.exe'
+                    Start-Process "$installerPath\src\bin\automaton\Automaton.exe"
                     [Windows.Forms.MessageBox]::Show("When Automaton launches, select either Keyboard or Gamepad from $skyrimPath\US and then copy the install and download paths into their respective fields.`r`nAllow Automaton to access your Nexus account and handle NXM links (required). If you are a Nexus premium member, Automaton can download each mod for you automatically by clicking on the switch at the top.`r`nOtherwise, click on the box with the arrow inside next to each mod to go to the download page. You can hover over the mod's name in Automaton to see which specific file needs to be downloaded.`r`nAfter all of the mods have been downloaded, click on 'Install modpack.' After Automaton finishes installing the mods, close it to continue the install process.","Ultimate Skyrim Install", [Windows.Forms.MessageBoxButtons]::OK, [Windows.Forms.MessageBoxIcon]::Information)
                     $automatonIsRunning = $true
                     while($automatonIsRunning)
                     {
-                        if(!(Get-Process | where ProcessName -eq "Automaton"))
+                        if(!(Get-Process | Where-Object ProcessName -eq "Automaton"))
                         {
                             $automatonIsRunning = $false
                         }
@@ -381,22 +385,22 @@ $installerDownloads = (Get-Item .\Downloads).FullName
                         "Yes"
                         {
                             output("Configuring ENB")
-                            $folderName = (Get-ChildItem -Path "$skyrimPath\US" | where Name -like "US*" | where Attributes -eq "Directory").Name -replace "\\",""
+                            $folderName = (Get-ChildItem -Path "$skyrimPath\US" | Where-Object Name -like "US*" | Where-Object Attributes -eq "Directory").Name -replace "\\",""
                             $configFormENBPreset.Enabled = $false
-                            Copy-Item -Path ".\src\ini\$($configFormENBPreset.SelectedIndex)\Skyrim.ini" -Destination "$skyrimPath\US\$folderName\profiles\$folderName\Skyrim.ini" -Force
-                            Copy-Item -Path ".\src\ini\$($configFormENBPreset.SelectedIndex)\SkyrimPrefs.ini" -Destination "$skyrimPath\US\$folderName\profiles\$folderName\SkyrimPrefs.ini" -Force
+                            Copy-Item -Path "$installerPath\src\ini\$($configFormENBPreset.SelectedIndex)\Skyrim.ini" -Destination "$skyrimPath\US\$folderName\profiles\$folderName\Skyrim.ini" -Force
+                            Copy-Item -Path "$installerPath\src\ini\$($configFormENBPreset.SelectedIndex)\SkyrimPrefs.ini" -Destination "$skyrimPath\US\$folderName\profiles\$folderName\SkyrimPrefs.ini" -Force
                             Remove-Item -Path "$skyrimPath\US\$folderName\mods\Snowfall Weathers\ENB Files - empty into Skyrim Directory\enblocal.ini" -ErrorAction SilentlyContinue
                             foreach($file in (Get-ChildItem "$skyrimPath\US\$folderName\mods\Snowfall Weathers\ENB Files - empty into Skyrim Directory"))
                             {
                                 Copy-Item -Path $file.FullName -Destination "$skyrimPath" -Force
                             }
-                            foreach($file in (Get-ChildItem ".\src\ENB"))
+                            foreach($file in (Get-ChildItem "$installerPath\src\ENB"))
                             {
                                 Copy-Item -Path $file.FullName -Destination "$skyrimPath" -Force
                             }
                             output("Starting ModOrganizer to create ini")
                             [Windows.Forms.MessageBox]::Show("ModOrganizer will launch and then close. Do not touch your mouse or keyboard. Click ok to any pop-ups","Ultimate Skyrim Install", [Windows.Forms.MessageBoxButtons]::OK, [Windows.Forms.MessageBoxIcon]::Information)
-                            start "$skyrimPath\US\$folderName\ModOrganizer.exe"
+                            Start-Process "$skyrimPath\US\$folderName\ModOrganizer.exe"
                             Start-Sleep -Seconds 10
                             Stop-Process -Name ModOrganizer
                             [Windows.Forms.MessageBox]::Show("The installer will now clean your DLC. Just dismiss the developer message, or any error messages that pop up. The DLC should still get cleaned","Ultimate Skyrim Install", [Windows.Forms.MessageBoxButtons]::OK, [Windows.Forms.MessageBoxIcon]::Information)
@@ -423,11 +427,11 @@ $installerDownloads = (Get-Item .\Downloads).FullName
                             (Get-Content -Path "$skyrimPath\US\$folderName\ModOrganizer.ini" -Raw) + "[Settings]`r`nlanguage=en`r`noverwritingLooseFilesColor=@Variant(\0\0\0\x43\x1@@\xff\xff\0\0\0\0\0\0)`r`noverwrittenLooseFilesColor=@Variant(\0\0\0\x43\x1@@\0\0\xff\xff\0\0\0\0)`r`noverwritingArchiveFilesColor=@Variant(\0\0\0\x43\x1@@\xff\xff\0\0\xff\xff\0\0)`r`noverwrittenArchiveFilesColor=@Variant(\0\0\0\x43\x1@@\0\0\xff\xff\xff\xff\0\0)`r`ncontainsPluginColor=@Variant(\0\0\0\x43\x1@@\0\0\0\0\xff\xff\0\0)`r`ncontainedColor=@Variant(\0\0\0\x43\x1@@\0\0\0\0\xff\xff\0\0)`r`ncompact_downloads=false`r`nmeta_downloads=false`r`nuse_prereleases=false`r`ncolorSeparatorScrollbars=true`r`nlog_level=1`r`ncrash_dumps_type=1`r`ncrash_dumps_max=5`r`noffline_mode=false`r`nuse_proxy=false`r`nendorsement_integration=true`r`nhide_api_counter=false`r`nload_mechanism=0`r`nhide_unchecked_plugins=false`r`nforce_enable_core_files=true`r`ndisplay_foreign=true`r`nlock_gui=false`r`narchive_parsing_experimental=false`r`n`r`n[pluginBlacklist]`r`n1\name=plugin_python.dll`r`nsize=1" | Set-Content -Path "$skyrimPath\US\$folderName\ModOrganizer.ini"
                             foreach($DLC in $DLCList)
                             {
-                                start "$skyrimPath\US\$folderName\ModOrganizer.exe" -ArgumentList "-p `"$folderName`" `"moshortcut://:Clean $DLC`""
+                                Start-Process "$skyrimPath\US\$folderName\ModOrganizer.exe" -ArgumentList "-p `"$folderName`" `"moshortcut://:Clean $DLC`""
                                 output("Cleaning $DLC.esm")
-                                sleep -seconds 10
+                                Start-Sleep -seconds 10
                             }
-                            while(Get-Process | where -Property ProcessName -eq "TES5Edit"){sleep -seconds 5}
+                            while(Get-Process | Where-Object -Property ProcessName -eq "TES5Edit"){Start-Sleep -seconds 5}
                             if($folderName -like "*Gamepad*"){Remove-Item $skyrimPath\ControlMap_Custom.txt -Force}
                             $WshShell = New-Object -comObject WScript.Shell
                             $Shortcut = $WshShell.CreateShortcut("$env:USERPROFILE\Desktop\Ultimate Skyrim.lnk")
@@ -441,7 +445,7 @@ $installerDownloads = (Get-Item .\Downloads).FullName
                             {
                                 "Yes"
                                 {
-                                    start "`"$skyrimPath\US\$folderName\ModOrganizer.exe`"" -ArgumentList "-p `"$folderName`" `"moshortcut://:SKSE`""
+                                    Start-Process "`"$skyrimPath\US\$folderName\ModOrganizer.exe`"" -ArgumentList "-p `"$folderName`" `"moshortcut://:SKSE`""
                                     $configForm.Close()
                                 }
                                 "No"
