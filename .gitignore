@@ -2,3 +2,6 @@
 
 # IDEs
 .idea
+
+# logs
+bin/automaton/logs/*

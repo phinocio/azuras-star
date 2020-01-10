@@ -285,7 +285,7 @@
                         Invoke-WebRequest -Uri "https://archive.org/download/Wyrmstooth1.17B/Wyrmstooth%201.17B.zip" -OutFile "$skyrimPath\US\Downloads\Wyrmstooth 1.17B.zip"
                         output("Downloaded Wyrmstooth")
 
-                    }else{output("NVAC and Wyrmstooth already installed")}
+                    }else{output("Wyrmstooth already installed")}
         
                     output("Getting VideoMemory")
                     [Windows.Forms.MessageBox]::Show("Please enter your RAM amount and VRAM amount in the next window.","Ultimate Skyrim Install", [Windows.Forms.MessageBoxButtons]::OK, [Windows.Forms.MessageBoxIcon]::Information)
