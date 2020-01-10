@@ -162,8 +162,12 @@
                     [Windows.Forms.MessageBox]::Show("When Skyrim launches, let it automatically detect your settings, then launch to the main menu. Then you can exit Skyrim and come back here to run the Preinstall.","Ultimate Skyrim Install", [Windows.Forms.MessageBoxButtons]::OK, [Windows.Forms.MessageBoxIcon]::Information)
                     output("Launching Skyrim for first time set up")
                     $steamPath = (Get-ItemProperty HKLM:\Software\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall\* | Where-Object DisplayName -Like "Steam" | Select-Object -ExpandProperty UninstallString) -replace "uninstall.exe","steam.exe"
-                    Start-Process $steamPath -ArgumentList "-applaunch 72850"
                     $configFormPreReqsSkyrim.Enabled = $false
+                    Start-Process $steamPath -ArgumentList "-applaunch 72850" -Wait
+                    Start-Sleep -Seconds 5
+                    Wait-Process -Name SkyrimLauncher -ErrorAction SilentlyContinue
+                    Start-Sleep -Seconds 5
+                    Wait-Process -Name TESV -ErrorAction SilentlyContinue
                     if($javaInstalled -and $7ZipInstalled)
                     {
                         $configFormPreReqsPreinstall.Enabled = $true
@@ -188,26 +192,30 @@
                 {
 
                     output("Getting Nexus API key")
-                    [Windows.Forms.MessageBox]::Show("Some mods need to be downloaded from Nexus, this requires a Nexus Personal API Key which is given to premium Nexus accounts only. This is private to you and we don't save it, we just pass it through to Nexus.`r`n`r`nDO NOT SHARE THIS WITH ANYONE!`r`n`r`nYou can find your Personal API Key at the bottom of the page that will open in your default browser after clicking ok.", "Ultimate Skyrim Install", [Windows.Forms.MessageBoxButtons]::OK, [Windows.Forms.MessageBoxIcon]::Information)
+                    [Windows.Forms.MessageBox]::Show("Some mods need to be downloaded from Nexus, this requires a Nexus Personal API Key which is given to premium Nexus accounts only. This is private to you and we don't save it, we just pass it through to Nexus.`r`n`r`nDO NOT SHARE THIS WITH ANYONE!`r`n`r`nYou can find your Personal API Key at the bottom of the page that will open in your default browser after clicking ok. Paste it into the pop up window.", "Ultimate Skyrim Install", [Windows.Forms.MessageBoxButtons]::OK, [Windows.Forms.MessageBoxIcon]::Information)
                     Start-Process "https://www.nexusmods.com/users/myaccount?tab=api%20access"
+                    Start-Sleep -Seconds 2
                     $configFormGetAPIKey = New-Object System.Windows.Forms.Form
-                    $configFormGetAPIKey.Width = 600
-                    $configFormGetAPIKey.Height = 600
-                    $configFormGetAPIKey.Text = "Ultimate Skyrim Installation - Personal API Key"
+                    $configFormGetAPIKey.Width = 288
+                    $configFormGetAPIKey.Height = 140
+                    $configFormGetAPIKey.Text = "Azura's Star - Personal API Key"
                     $configFormGetAPIKey.Icon = $Icon
+                    $configFormGetAPIKey.FormBorderStyle = "Fixed3D"
+                    $configFormGetAPIKey.MaximizeBox = $false
+                    $configFormGetAPIKey.MinimizeBox = $false
+                    $configFormGetAPIKey.TopMost = $true
                     $getAPIKey = New-Object System.Windows.Forms.TextBox
                     $getAPIKey.Top = 10
                     $getAPIKey.Left = 10
-                    $getAPIKey.Size = New-Object System.Drawing.Size(500, 50)
-                    $getAPIKey.Scrollbars = "Vertical"
+                    $getAPIKey.Size = New-Object System.Drawing.Size(250, 50)
                     $getAPIKey.AutoSize = $false;
                     $getAPIKey.Multiline = $true
                     $configFormGetAPIKey.Controls.Add($getAPIKey)
 
                     $confirmAPIKey = New-Object System.Windows.Forms.Button
                     $confirmAPIKey.Text = "Continue"
-                    $confirmAPIKey.Top = 100
-                    $confirmAPIKey.Left = 150
+                    $confirmAPIKey.Top = 70
+                    $confirmAPIKey.Left = 97.5
                     $confirmAPIKey.ADD_CLICK(
                             {
                                 $global:apiKey = $getAPIKey.Text
@@ -227,14 +235,13 @@
                         output("Download complete")
 
                         output("Installing SKSE...")
-                        & "$env:ProgramFiles\7-Zip\7z.exe" "x" "$installerDownloads\SKSE_install.7z" "-o$skyrimPath" > $null
-                        foreach($file in (Get-ChildItem -Path "$skyrimPath\skse_1_07_03"))
+                        & "$env:ProgramFiles\7-Zip\7z.exe" "x" "$installerDownloads\SKSE_install.7z" "-o$installerDownloads" > $null
+                        foreach($file in (Get-ChildItem -Path "$installerDownloads\skse_1_07_03"))
                         {
-                            Copy-Item -Path $file.FullName -Destination "$skyrimPath\" -Force
+                            Copy-Item -Path $file.FullName -Destination "$skyrimPath" -Force
                         }
                         Remove-Item "$installerDownloads\SKSE_install.7z"
-
-
+                        Remove-Item "$installerDownloads\skse_1_07_03" -Recurse
                         $SKSEzip = Get-Item "$installerDownloads\SKSEPreloader.zip"
                         [System.IO.Compression.ZipFile]::ExtractToDirectory($SKSEzip.FullName, $skyrimPath)
                         Remove-Item "$installerDownloads\SKSEPreloader.zip"
@@ -267,7 +274,7 @@
                         output("Extracting TES5Edit...")
                         & "$env:ProgramFiles\7-Zip\7z.exe" "x" "$installerDownloads/TES5Edit.7z" "-o$skyrimPath\US\Utilities" > $null
                         Remove-Item "$installerDownloads\TES5Edit.7z"
-                        output("Extraxted TES5Edit")
+                        output("Extracted TES5Edit")
                     }else{output("TES5Edit already installed")}
                     
                     if(!(Test-Path "$skyrimPath\US\Downloads\NVAC - New Vegas Anti Crash-53635-7-5-1-0.zip"))
@@ -288,84 +295,30 @@
                     }else{output("Wyrmstooth already installed")}
         
                     output("Getting VideoMemory")
-                    [Windows.Forms.MessageBox]::Show("Please enter your RAM amount and VRAM amount in the next window.","Ultimate Skyrim Install", [Windows.Forms.MessageBoxButtons]::OK, [Windows.Forms.MessageBoxIcon]::Information)
-                    $configFormGetRam = New-Object System.Windows.Forms.Form
-                        $configFormGetRam.Width = 300
-                        $configFormGetRam.Height = 110
-                        $configFormGetRam.Text = "Ultimate Skyrim Installation"
-                        $configFormGetRam.Icon = $Icon
-                        $getRAM = New-Object System.Windows.Forms.TextBox
-                            $getRAM.Text = "Enter RAM in megabytes here"
-                            $getRAM.Top = 10
-                            $getRAM.Left = 10
-                            $getRAM.Size = New-Object System.Drawing.Size(150,25)
-                            $getRAM.add_TextChanged(
-                            {
-                                # Check if Text contains any non-Digits
-                                if($getRAM.Text -match '\D'){
-                                    # If so, remove them
-                                    $getRAM.Text = $getRAM.Text -replace '\D'
-                                    # If Text still has a value, move the cursor to the end of the number
-                                    if($getRAM.Text.Length -gt 0){
-                                        $getRAM.Focus()
-                                        $getRAM.SelectionStart = $getRAM.Text.Length
-                                    }
-                                }
-                            })
-                            $configFormGetRam.Controls.Add($getRAM)
-                        $getVRAM = New-Object System.Windows.Forms.TextBox
-                            $getVRAM.Text = "Enter VRAM in megabytes here"
-                            $getVRAM.Top = 40
-                            $getVRAM.Left = 10
-                            $getVRAM.Size = New-Object System.Drawing.Size(150,25)
-                            $getVRAM.add_TextChanged(
-                            {
-                                # Check if Text contains any non-Digits
-                                if($getVRAM.Text -match '\D'){
-                                    # If so, remove them
-                                    $getVRAM.Text = $getVRAM.Text -replace '\D'
-                                    # If Text still has a value, move the cursor to the end of the number
-                                    if($getVRAM.Text.Length -gt 0){
-                                        $getVRAM.Focus()
-                                        $getVRAM.SelectionStart = $getVRAM.Text.Length
-                                    }
-                                }
-                            })
-                            $configFormGetRAM.Controls.Add($getVRAM)
-                        $confirmRAM = New-Object System.Windows.Forms.Button
-                            $confirmRAM.Text = "Confirm"
-                            $confirmRAM.Top = 39
-                            $confirmRAM.Left = 165
-                            $confirmRAM.ADD_CLICK(
-                            {
-                                $RAM = [int]$getRAM.Text
-                                $VRAM = [int]$getVRAM.Text
-                                if($RAM -lt 4096)
-                                {
-                                    [Windows.Forms.MessageBox]::Show("You may not have enough RAM to run Ultimate Skyrim! Proceed at your own risk.","Ultimate Skyrim Install", [Windows.Forms.MessageBoxButtons]::OK, [Windows.Forms.MessageBoxIcon]::Error)
-                                }
-                                if($VRAM -lt 4096)
-                                {
-                                    [Windows.Forms.MessageBox]::Show("You may not have enough VRAM to run Ultimate Skyrim! Proceed at your own risk.","Ultimate Skyrim Install", [Windows.Forms.MessageBoxButtons]::OK, [Windows.Forms.MessageBoxIcon]::Error)
-                                }
-                                $videoMem = "Video Memory: " + (($RAM + $VRAM) - 2048) + " MB"
-                                $configFormVideoMemory.Text = $videoMem
-                                if($videoMem -le 12288){$recSpec = "Low";$PresetIndex = 0}
-                                if($videoMem -lt 22528 -and $videoMem -gt 12288){$recSpec = "Medium";$PresetIndex = 1}
-                                if($videoMem -ge 22528){$recSpec = "High";$PresetIndex = 2}
-                                [Windows.Forms.MessageBox]::Show("Your recommended ENB preset is $recSpec.","Ultimate Skyrim Install", [Windows.Forms.MessageBoxButtons]::OK, [Windows.Forms.MessageBoxIcon]::Information)
-                                output("Setting ENB preset")
-                                $configFormENBPreset.SelectedIndex = $PresetIndex
-                                output("Setting VideoMemory in enblocal.ini")
-                                (Get-Content -Path "$installerSrc\bin\enblocal.ini" -raw) -replace "INSERTRAMHERE",(($RAM + $VRAM) - 2048) | Set-Content "$skyrimPath\enblocal.ini"
-                                $configFormGetRam.Close()
-                            })
-                            $configFormGetRam.Controls.Add($confirmRAM)
-                        $configFormGetRam.ShowDialog()
-                    [Windows.Forms.MessageBox]::Show("Due to the size of DynDOLOD, it must be downloaded manually. You will be directed to the download page. Please drag and drop the file into the downloads folder that will open when you hit OK","Ultimate Skyrim Install", [Windows.Forms.MessageBoxButtons]::OK, [Windows.Forms.MessageBoxIcon]::Information)
-                    Start-Process "https://mega.nz/#!SANlQY7R!deorWwQBDDw4GoHYfJ-7NJVOWQ1U-KsoH1HrdG4PFaI"
-                    Start-Process "$skyrimPath\US\Downloads"
-                    [Windows.Forms.MessageBox]::Show("Now you can run Automaton!","Ultimate Skyrim Install", [Windows.Forms.MessageBoxButtons]::OK, [Windows.Forms.MessageBoxIcon]::Information)
+                    $installerPath = 'D:\code'
+                    Start-Process $installerPath\src\bin\gpuz.exe -ArgumentList "-dump $installerPath\src\bin\gpuinfo.xml" -Wait
+                    [xml]$gpuInfo = Get-Content "$installerPath\src\bin\gpuinfo.xml"
+                    $VRAM = $gpuInfo.gpuz_dump.card.memsize
+                    $RAM = (Get-WmiObject -class "Win32_PhysicalMemory" | Measure-Object -Property Capacity -Sum).Sum/1024/1024
+                    $videoMem = "Video Memory: " + (($RAM + $VRAM) - 2048) + " MB"
+                    $configFormVideoMemory.Text = $videoMem
+                    if($videoMem -le 10240){$recSpec = "Low";$PresetIndex = 0}
+                    if($videoMem -lt 14336 -and $videoMem -gt 10240){$recSpec = "Medium";$PresetIndex = 1}
+                    if($videoMem -ge 14336){$recSpec = "High";$PresetIndex = 2}
+                    [Windows.Forms.MessageBox]::Show("Your recommended ENB preset is $recSpec.","Ultimate Skyrim Install", [Windows.Forms.MessageBoxButtons]::OK, [Windows.Forms.MessageBoxIcon]::Information)
+                    output("Setting ENB preset")
+                    $configFormENBPreset.SelectedIndex = $PresetIndex
+                    output("Setting VideoMemory in enblocal.ini")
+                    (Get-Content -Path "$installerSrc\bin\enblocal.ini" -raw) -replace "INSERTRAMHERE",(($RAM + $VRAM) - 2048) | Set-Content "$skyrimPath\enblocal.ini"
+                    if(!(Test-Path -Path "$skyrimPath\US\Downloads\US 4.0.6hf2 DynDOLOD.rar"))
+                    {
+                        [Windows.Forms.MessageBox]::Show("Due to the size of DynDOLOD, it must be downloaded manually. You will be directed to the download page. Please drag and drop the file into the downloads folder that will open when you hit OK","Ultimate Skyrim Install", [Windows.Forms.MessageBoxButtons]::OK, [Windows.Forms.MessageBoxIcon]::Information)
+                        Start-Process "https://mega.nz/#!SANlQY7R!deorWwQBDDw4GoHYfJ-7NJVOWQ1U-KsoH1HrdG4PFaI"
+                        Start-Process "$skyrimPath\US\Downloads"
+                        output("Downloading DynDOLOD")
+                        while(!(Test-Path -Path "$skyrimPath\US\Downloads\US 4.0.6hf2 DynDOLOD.rar")){}
+                        [Windows.Forms.MessageBox]::Show("Now you can run Automaton!","Ultimate Skyrim Install", [Windows.Forms.MessageBoxButtons]::OK, [Windows.Forms.MessageBoxIcon]::Information)
+                    }else{output("DynDOLOD already downloaded")}
                     output("Ready to run Automaton! Double check your settings and rerun Preinstall if you need to change something")
                     $startAutomaton.Enabled = $true
                 })
@@ -418,16 +371,8 @@
                 $startAutomaton.ADD_CLICK(
                 {
                     output("Running Automaton")
-                    Start-Process "$installerSrc\bin\automaton\Automaton.exe"
                     [Windows.Forms.MessageBox]::Show("When Automaton launches, select either Keyboard or Gamepad from $skyrimPath\US and then copy the install and download paths into their respective fields.`r`nAllow Automaton to access your Nexus account and handle NXM links (required). If you are a Nexus premium member, Automaton can download each mod for you automatically by clicking on the switch at the top.`r`nOtherwise, click on the box with the arrow inside next to each mod to go to the download page. You can hover over the mod's name in Automaton to see which specific file needs to be downloaded.`r`nAfter all of the mods have been downloaded, click on 'Install modpack.' After Automaton finishes installing the mods, close it to continue the install process.","Ultimate Skyrim Install", [Windows.Forms.MessageBoxButtons]::OK, [Windows.Forms.MessageBoxIcon]::Information)
-                    $automatonIsRunning = $true
-                    while($automatonIsRunning)
-                    {
-                        if(!(Get-Process | Where-Object ProcessName -eq "Automaton"))
-                        {
-                            $automatonIsRunning = $false
-                        }
-                    }
+                    Start-Process "$installerSrc\bin\automaton\Automaton.exe" -Wait
                     $automatonSuccess = [Windows.Forms.MessageBox]::Show("Did Automaton complete? If it crashed, select no.","Ultimate Skyrim Install", [Windows.Forms.MessageBoxButtons]::YesNo, [Windows.Forms.MessageBoxIcon]::Information)
                     switch($automatonSuccess)
                     {
@@ -450,7 +395,7 @@
                             output("Starting ModOrganizer to create ini")
                             [Windows.Forms.MessageBox]::Show("ModOrganizer will launch and then close. Do not touch your mouse or keyboard. Click ok to any pop-ups","Ultimate Skyrim Install", [Windows.Forms.MessageBoxButtons]::OK, [Windows.Forms.MessageBoxIcon]::Information)
                             Start-Process "$skyrimPath\US\$folderName\ModOrganizer.exe"
-                            Start-Sleep -Seconds 10
+                            Start-Sleep -Seconds 5
                             Stop-Process -Name ModOrganizer
                             [Windows.Forms.MessageBox]::Show("The installer will now clean your DLC. Just dismiss the developer message, or any error messages that pop up. The DLC should still get cleaned","Ultimate Skyrim Install", [Windows.Forms.MessageBoxButtons]::OK, [Windows.Forms.MessageBoxIcon]::Information)
                             $modOrganizerIni = (Get-Content -Path "$skyrimPath\US\$folderName\ModOrganizer.ini")
@@ -468,26 +413,26 @@
                             $DLCPATH = $skyrimPath -replace '\\',"/"
                             foreach($DLC in $DLCList)
                             {
-                                $newEXEs = $newEXEs + "$i\title=Clean $DLC`r`n$i\toolbar=false`r`n$i\ownicon=true`r`n$i\binary=$DLCPATH/US/Utilities/TES5Edit.exe`r`n$i\arguments=`"-autoexit -quickautoclean -autoload $DLC.esm`"`r`n$i\workingDirectory=$DLCPATH/US/$folderName/`r`n$i\steamAppID=`r`n"
+                                $newEXEs = $newEXEs + "$i\title=Clean $DLC`r`n$i\toolbar=false`r`n$i\ownicon=true`r`n$i\binary=$DLCPATH/US/Utilities/TES5Edit.exe`r`n$i\arguments=`"-autoexit -quickautoclean -autoload $DLC.esm`"`r`n$i\workingDirectory=`r`n$i\steamAppID=`r`n"
                                 $i++
                             }
                             $newEXEs = $newEXEs + "size=$($i-1)"
                             (Get-Content -Path "$skyrimPath\US\$folderName\ModOrganizer.ini" -Raw) -replace "size=$numberOfEXE",$newEXEs | Set-Content -Path "$skyrimPath\US\$folderName\ModOrganizer.ini"
-                            (Get-Content -Path "$skyrimPath\US\$folderName\ModOrganizer.ini" -Raw) + "[Settings]`r`nlanguage=en`r`noverwritingLooseFilesColor=@Variant(\0\0\0\x43\x1@@\xff\xff\0\0\0\0\0\0)`r`noverwrittenLooseFilesColor=@Variant(\0\0\0\x43\x1@@\0\0\xff\xff\0\0\0\0)`r`noverwritingArchiveFilesColor=@Variant(\0\0\0\x43\x1@@\xff\xff\0\0\xff\xff\0\0)`r`noverwrittenArchiveFilesColor=@Variant(\0\0\0\x43\x1@@\0\0\xff\xff\xff\xff\0\0)`r`ncontainsPluginColor=@Variant(\0\0\0\x43\x1@@\0\0\0\0\xff\xff\0\0)`r`ncontainedColor=@Variant(\0\0\0\x43\x1@@\0\0\0\0\xff\xff\0\0)`r`ncompact_downloads=false`r`nmeta_downloads=false`r`nuse_prereleases=false`r`ncolorSeparatorScrollbars=true`r`nlog_level=1`r`ncrash_dumps_type=1`r`ncrash_dumps_max=5`r`noffline_mode=false`r`nuse_proxy=false`r`nendorsement_integration=true`r`nhide_api_counter=false`r`nload_mechanism=0`r`nhide_unchecked_plugins=false`r`nforce_enable_core_files=true`r`ndisplay_foreign=true`r`nlock_gui=false`r`narchive_parsing_experimental=false`r`n`r`n[pluginBlacklist]`r`n1\name=plugin_python.dll`r`nsize=1" | Set-Content -Path "$skyrimPath\US\$folderName\ModOrganizer.ini"
+                            (Get-Content -Path "$skyrimPath\US\$folderName\ModOrganizer.ini" -Raw) + "[Settings]`r`nlanguage=en`r`noverwritingLooseFilesColor=@Variant(\0\0\0\x43\x1@@\xff\xff\0\0\0\0\0\0)`r`noverwrittenLooseFilesColor=@Variant(\0\0\0\x43\x1@@\0\0\xff\xff\0\0\0\0)`r`noverwritingArchiveFilesColor=@Variant(\0\0\0\x43\x1@@\xff\xff\0\0\xff\xff\0\0)`r`noverwrittenArchiveFilesColor=@Variant(\0\0\0\x43\x1@@\0\0\xff\xff\xff\xff\0\0)`r`ncontainsPluginColor=@Variant(\0\0\0\x43\x1@@\0\0\0\0\xff\xff\0\0)`r`ncontainedColor=@Variant(\0\0\0\x43\x1@@\0\0\0\0\xff\xff\0\0)`r`ncompact_downloads=false`r`nmeta_downloads=false`r`nuse_prereleases=false`r`ncolorSeparatorScrollbars=true`r`nlog_level=1`r`ncrash_dumps_type=1`r`ncrash_dumps_max=5`r`noffline_mode=false`r`nuse_proxy=false`r`nendorsement_integration=true`r`nhide_api_counter=false`r`nload_mechanism=0`r`nhide_unchecked_plugins=false`r`nforce_enable_core_files=true`r`ndisplay_foreign=true`r`nlock_gui=false`r`narchive_parsing_experimental=false" | Set-Content -Path "$skyrimPath\US\$folderName\ModOrganizer.ini"
                             foreach($DLC in $DLCList)
                             {
-                                Start-Process "$skyrimPath\US\$folderName\ModOrganizer.exe" -ArgumentList "-p `"$folderName`" `"moshortcut://:Clean $DLC`""
                                 output("Cleaning $DLC.esm")
-                                Start-Sleep -seconds 10
+                                $cleaning = Start-Process "$skyrimPath\US\$folderName\ModOrganizer.exe" -ArgumentList "-p `"$folderName`" `"moshortcut://:Clean $DLC`"" -PassThru
+                                Wait-Process -Id $cleaning.Id
                             }
-                            while(Get-Process | Where-Object -Property ProcessName -eq "TES5Edit"){Start-Sleep -seconds 5}
                             if($folderName -like "*Gamepad*"){Remove-Item $skyrimPath\ControlMap_Custom.txt -Force}
                             $WshShell = New-Object -comObject WScript.Shell
                             $Shortcut = $WshShell.CreateShortcut("$env:USERPROFILE\Desktop\Ultimate Skyrim.lnk")
                             $targetPath = "`"$skyrimPath\US\$folderName\ModOrganizer.exe`""
                             $Shortcut.Arguments = "-p `"$folderName`" `"moshortcut://:SKSE`""
                             $Shortcut.TargetPath = $targetPath
-                            $shortcut.IconLocation="$skyrimPath\TESV.exe"
+                            $shortcut.IconLocation = "$skyrimPath\TESV.exe"
+                            $Shortcut.WindowStyle = 7
                             $Shortcut.Save()
                             $postCompletion = [Windows.Forms.MessageBox]::Show("Congratulations! Ultimate Skyrim is installed and a shortcut has been created on your desktop! Would you like to launch Ultimate Skyrim now?","Ultimate Skyrim Install", [Windows.Forms.MessageBoxButtons]::YesNo, [Windows.Forms.MessageBoxIcon]::Exclamation)
                             switch($postCompletion)

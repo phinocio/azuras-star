@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<gpuz_dump>
+  <version>2.28.0</version>
+  <card>
+    <location>9:0:0</location>
+    <cardname>NVIDIA GeForce GTX 1070</cardname>
+    <vendor>NVIDIA</vendor>
+    <vendorid>10DE</vendorid>
+    <gpuname>GP104</gpuname>
+    <diesize>314</diesize>
+    <processsize>16</processsize>
+    <deviceid>1B81</deviceid>
+    <subsysid>6899</subsysid>
+    <subvendor>HP</subvendor>
+    <subvendorid>103C</subvendorid>
+    <gpurevision>A1</gpurevision>
+    <biosversion>86.04.50.40.31</biosversion>
+    <businterface>PCIe x16 3.0 @ x16 3.0</businterface>
+    <directxsupport>12 (12_1)</directxsupport>
+    <memtype>GDDR5</memtype>
+    <memvendor>Samsung</memvendor>
+    <membuswidth>256</membuswidth>
+    <memsize>8192</memsize>
+    <numrops>64</numrops>
+    <numtmus>120</numtmus>
+    <numshadersvertex></numshadersvertex>
+    <numshaderspixel></numshaderspixel>
+    <numshadersunified>1920</numshadersunified>
+    <driverversion>26.21.14.4166 (NVIDIA 441.66) DCH / Win10 64</driverversion>
+    <fillratepixel>107.7</fillratepixel>
+    <fillratetexel>202.0</fillratetexel>
+    <membandwidth>256.3</membandwidth>
+    <clockgpu>1506</clockgpu>
+    <clockmem>2002</clockmem>
+    <clockshader></clockshader>
+    <clockgpudefault>1506</clockgpudefault>
+    <clockmemdefault>2002</clockmemdefault>
+    <clockshaderdefault></clockshaderdefault>
+    <clockgpuboost>1683</clockgpuboost>
+    <clockgpuboostdefault>1683</clockgpuboostdefault>
+    <multigpuname>NVIDIA SLI</multigpuname>
+    <multigpu0>Disabled </multigpu0>
+    <cuda>1</cuda>
+    <opencl>1</opencl>
+    <dxcompute>1</dxcompute>
+    <physx>1</physx>
+  </card>
+</gpuz_dump>
