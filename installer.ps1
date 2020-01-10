@@ -244,7 +244,6 @@
                         Remove-Item "$installerDownloads\skse_1_07_03" -Recurse
                         $SKSEzip = Get-Item "$installerDownloads\SKSEPreloader.zip"
                         [System.IO.Compression.ZipFile]::ExtractToDirectory($SKSEzip.FullName, $skyrimPath)
-                        Remove-Item "$installerDownloads\SKSEPreloader.zip"
                         output("Installed SKSE")
                     }else{output("SKSE already installed") }
 
