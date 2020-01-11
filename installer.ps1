@@ -1,4 +1,4 @@
-#Check prerequisites
+﻿#Check prerequisites
     #Is 64-Bit Java installed?
         if(Get-ItemProperty HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\* | Where-Object DisplayName -like "Java*")
         {
@@ -294,7 +294,6 @@
                     }else{output("Wyrmstooth already installed")}
         
                     output("Getting VideoMemory")
-                    $installerPath = 'D:\code'
                     Start-Process $installerPath\src\bin\gpuz.exe -ArgumentList "-dump $installerPath\src\bin\gpuinfo.xml" -Wait
                     [xml]$gpuInfo = Get-Content "$installerPath\src\bin\gpuinfo.xml"
                     $VRAM = $gpuInfo.gpuz_dump.card.memsize

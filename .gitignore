@@ -3,5 +3,7 @@
 # IDEs
 .idea
 
+# GPU info file
+bin/gpuinfo.xml
 # logs
 bin/automaton/logs/*
