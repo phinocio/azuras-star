@@ -224,74 +224,80 @@
                     $configFormGetAPIKey.Controls.Add($confirmAPIKey)
                     $configFormGetAPIKey.ShowDialog()
 
-                    output("Starting manual downloads, this might take a few minutes. This sometimes causes the window to not respond even though it's still working. Be patient :)")
-
-                    if(!(Test-Path $skyrimPath\skse_loader.exe) -and !(Test-Path "$skyrimPath\d3dx9_42.dll"))
-                    {
-                        output("Downloading SKSE and it's preloader...")
-                        Invoke-WebRequest -Uri "https://skse.silverlock.org/beta/skse_1_07_03.7z" -OutFile "$installerDownloads\SKSE_install.7z"
-                        $preloaderDownloadLink = Invoke-RestMethod -Uri "https://api.nexusmods.com/v1/games/skyrim/mods/75795/files/1000207412/download_link.json" -Headers @{"apikey"="$apiKey"}
-                        Invoke-WebRequest -Uri $preloaderDownloadLink[0].URI -OutFile "$installerDownloads\SKSEPreloader.zip"
-                        output("Download complete")
-
-                        output("Installing SKSE...")
-                        & "$env:ProgramFiles\7-Zip\7z.exe" "x" "$installerDownloads\SKSE_install.7z" "-o$installerDownloads" > $null
-                        foreach($file in (Get-ChildItem -Path "$installerDownloads\skse_1_07_03"))
-                        {
-                            Copy-Item -Path $file.FullName -Destination "$skyrimPath" -Force
-                        }
-                        Remove-Item "$installerDownloads\SKSE_install.7z"
-                        Remove-Item "$installerDownloads\skse_1_07_03" -Recurse
-                        $SKSEzip = Get-Item "$installerDownloads\SKSEPreloader.zip"
-                        [System.IO.Compression.ZipFile]::ExtractToDirectory($SKSEzip.FullName, $skyrimPath)
-                        output("Installed SKSE")
-                    }else{output("SKSE already installed") }
-
                     output("Copying ENB files...")
                     Copy-Item -Path $installerSrc\bin\d3d9.dll -Destination $skyrimPath -Force
                     Copy-Item -Path $installerSrc\bin\enbhost.exe -Destination $skyrimPath -Force
                     Copy-Item -Path $installerSrc\bin\enblocal.ini -Destination $skyrimPath -Force
                     output("Copied ENB files")
-                    
+
                     output("Creating install directories")
                     New-Item -ItemType Directory -Path $skyrimPath\US -Force
                     New-Item -ItemType Directory -Path $skyrimPath\US\Utilities -Force
                     New-Item -ItemType Directory -Path $skyrimPath\US\Downloads -Force
-                    foreach($file in (Get-ChildItem -Path "$installerSrc\ultsky"))
+                    foreach ($file in (Get-ChildItem -Path "$installerSrc\ultsky"))
                     {
                         Copy-Item -Path $file.FullName -Destination "$skyrimPath\US\Downloads" -Force
                     }
                     Copy-Item -Path "$installerSrc\bin\US 406hf2 Gamepad - LD Hotfix 1.auto" -Destination $skyrimPath\US -Force
                     Copy-Item -Path "$installerSrc\bin\US 406hf2 Keyboard - LD Hotfix 1.auto" -Destination $skyrimPath\US -Force
-                    if(!(Test-Path -Path $skyrimPath\US\Utilities\TES5Edit.exe))
-                    {
-                        output("Downloading TES5Edit from Nexus...")
-                        $TES5EditDownloadLink = Invoke-RestMethod -Uri "https://api.nexusmods.com/v1/games/skyrim/mods/25859/files/1000309592/download_link.json" -Headers @{"apikey"="$apiKey"}
+
+                    output("Starting manual downloads, this might take a few minutes. This sometimes causes the window to not respond even though it's still working. Be patient :)")
+
+                    if(!(Test-Path $installerDownloads\skse_1_07_03.7z)) {
+                        output("Downloading SKSE...")
+                        Invoke-WebRequest -Uri "https://skse.silverlock.org/beta/skse_1_07_03.7z" -OutFile "$installerDownloads\SKSE_install.7z"
+                        output("Downloaded SKSE")
+                    } else {output("SKSE already downloaded") }
+
+                    if(!(Test-Path "$installerDownloads\SKSEPreloader.zip")) {
+                        output("Downloading SKSE preloader...")
+                        $preloaderDownloadLink = Invoke-RestMethod -Uri "https://api.nexusmods.com/v1/games/skyrim/mods/75795/files/1000207412/download_link.json" -Headers @{ "apikey" = "$apiKey" }
+                        Invoke-WebRequest -Uri $preloaderDownloadLink[0].URI -OutFile "$installerDownloads\SKSEPreloader.zip"
+                        output("Downloaded SKSE prelopader")
+                    } else {output("SKSE prelaoder already downloaded") }
+
+                    if (!(Test-Path $skyrimPath\skse_loader.exe)) {
+                        output("Installing SKSE...")
+                        & "$env:ProgramFiles\7-Zip\7z.exe" "x" "$installerDownloads\SKSE_install.7z" "-o$installerDownloads" > $null
+                        foreach($file in (Get-ChildItem -Path "$installerDownloads\skse_1_07_03")) {
+                            Copy-Item -Path $file.FullName -Destination "$skyrimPath" -Recurse -Force
+                        }
+                        output("Installed SKSE")
+                    }else{output("SKSE already installed") }
+
+                    if (!(Test-Path "$skyrimPath\d3dx9_42.dll")) {
+                        output("Installing SKSE preloader...")
+                        $SKSEzip = Get-Item "$installerDownloads\SKSEPreloader.zip"
+                        [System.IO.Compression.ZipFile]::ExtractToDirectory($SKSEzip.FullName, $skyrimPath)
+                        output("Installed SKSE preloader")
+                    }else{output("SKSE already installed") }
+
+                    if(!(Test-Path -Path $installerDownloads\TES5Edit.7z)) {
+                        output("Downloading TES5Edit...")
+                        $TES5EditDownloadLink = Invoke-RestMethod -Uri "https://api.nexusmods.com/v1/games/skyrim/mods/25859/files/1000309592/download_link.json" -Headers @{ "apikey" = "$apiKey" }
                         Invoke-WebRequest -Uri $TES5EditDownloadLink[0].URI -OutFile "$installerDownloads\TES5Edit.7z"
                         output("Downloaded TES5Edit")
+                    } else {output("TES5Edit already downloaded") }
 
-                        output("Extracting TES5Edit...")
+                    if (!(Test-Path -Path $skyrimPath\US\Utilities\TES5Edit.exe))
+                        {output("Extracting TES5Edit...")
                         & "$env:ProgramFiles\7-Zip\7z.exe" "x" "$installerDownloads/TES5Edit.7z" "-o$skyrimPath\US\Utilities" > $null
                         Remove-Item "$installerDownloads\TES5Edit.7z"
                         output("Extracted TES5Edit")
                     }else{output("TES5Edit already installed")}
                     
-                    if(!(Test-Path "$skyrimPath\US\Downloads\NVAC - New Vegas Anti Crash-53635-7-5-1-0.zip"))
-                    {
+                    if(!(Test-Path "$skyrimPath\US\Downloads\NVAC - New Vegas Anti Crash-53635-7-5-1-0.zip")) {
                         output("Downloading NVAC...")
                         $NVACDownloadLink = Invoke-RestMethod -Uri "https://api.nexusmods.com/v1/games/newvegas/mods/53635/files/1000039152/download_link.json" -Headers @{"apikey"="$apiKey"}
                         Invoke-WebRequest -Uri $NVACDownloadLink[0].URI -OutFile "$skyrimPath\US\Downloads\NVAC - New Vegas Anti Crash-53635-7-5-1-0.zip"
                         output("Downloaded NVAC")
+                    }else{output("NVAC already downloaded")}
 
-                    }else{output("NVAC already installed")}
-
-                    if(!(Test-Path "$skyrimPath\US\Downloads\Wyrmstooth 1.17B.zip"))
-                    {
+                    if(!(Test-Path "$skyrimPath\US\Downloads\Wyrmstooth 1.17B.zip")) {
                         output("Downloading Wyrmstooth...")
                         Invoke-WebRequest -Uri "https://archive.org/download/Wyrmstooth1.17B/Wyrmstooth%201.17B.zip" -OutFile "$skyrimPath\US\Downloads\Wyrmstooth 1.17B.zip"
                         output("Downloaded Wyrmstooth")
-
-                    }else{output("Wyrmstooth already installed")}
+                    }else{output("Wyrmstooth already downloaded")}
         
                     output("Getting VideoMemory")
                     Start-Process $installerPath\src\bin\gpuz.exe -ArgumentList "-dump $installerPath\src\bin\gpuinfo.xml" -Wait
@@ -382,13 +388,11 @@
                             Copy-Item -Path "$installerSrc\ini\$($configFormENBPreset.SelectedIndex)\Skyrim.ini" -Destination "$skyrimPath\US\$folderName\profiles\$folderName\Skyrim.ini" -Force
                             Copy-Item -Path "$installerSrc\ini\$($configFormENBPreset.SelectedIndex)\SkyrimPrefs.ini" -Destination "$skyrimPath\US\$folderName\profiles\$folderName\SkyrimPrefs.ini" -Force
                             Remove-Item -Path "$skyrimPath\US\$folderName\mods\Snowfall Weathers\ENB Files - empty into Skyrim Directory\enblocal.ini" -ErrorAction SilentlyContinue
-                            foreach($file in (Get-ChildItem "$skyrimPath\US\$folderName\mods\Snowfall Weathers\ENB Files - empty into Skyrim Directory"))
-                            {
-                                Copy-Item -Path $file.FullName -Destination "$skyrimPath" -Force
+                            foreach($file in (Get-ChildItem "$skyrimPath\US\$folderName\mods\Snowfall Weathers\ENB Files - empty into Skyrim Directory")) {
+                                Copy-Item -Path $file.FullName -Destination "$skyrimPath" -Recurse -Force
                             }
-                            foreach($file in (Get-ChildItem "$installerSrc\ENB"))
-                            {
-                                Copy-Item -Path $file.FullName -Destination "$skyrimPath" -Force
+                            foreach($file in (Get-ChildItem "$installerSrc\ENB")) {
+                                Copy-Item -Path $file.FullName -Destination "$skyrimPath" -Recurse -Force
                             }
                             output("Starting ModOrganizer to create ini")
                             [Windows.Forms.MessageBox]::Show("ModOrganizer will launch and then close. Do not touch your mouse or keyboard. Click ok to any pop-ups","Ultimate Skyrim Install", [Windows.Forms.MessageBoxButtons]::OK, [Windows.Forms.MessageBoxIcon]::Information)
