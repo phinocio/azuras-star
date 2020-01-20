@@ -17,6 +17,7 @@ Only requirement is Windows 10. All other software is downloaded and installed d
 * Installing SKSE
 * Creates a desktop shortcut for your modlist. ModOrganizer never needs to be launched manually again!
 * Recommends ENB presets based on your PCs specs.
+* Template save now working (Keyboard users only for now)
 * Support for any Automaton modpack (COMING SOON)
 
 ## Usage
