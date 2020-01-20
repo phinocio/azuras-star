@@ -259,9 +259,7 @@
                     if (!(Test-Path $skyrimPath\skse_loader.exe)) {
                         output("Installing SKSE...")
                         & "$env:ProgramFiles\7-Zip\7z.exe" "x" "$installerDownloads\SKSE_install.7z" "-o$installerDownloads" > $null
-                        foreach($file in (Get-ChildItem -Path "$installerDownloads\skse_1_07_03")) {
-                            Copy-Item -Path $file.FullName -Destination "$skyrimPath" -Recurse -Force
-                        }
+                        Get-ChildItem -Path "$installerDownloads\skse_1_07_03" | Copy-Item -Destination $skyrimPath -Recurse -Container -Force
                         output("Installed SKSE")
                     }else{output("SKSE already installed") }
 
@@ -387,12 +385,12 @@
                             $configFormENBPreset.Enabled = $false
                             Copy-Item -Path "$installerSrc\ini\$($configFormENBPreset.SelectedIndex)\Skyrim.ini" -Destination "$skyrimPath\US\$folderName\profiles\$folderName\Skyrim.ini" -Force
                             Copy-Item -Path "$installerSrc\ini\$($configFormENBPreset.SelectedIndex)\SkyrimPrefs.ini" -Destination "$skyrimPath\US\$folderName\profiles\$folderName\SkyrimPrefs.ini" -Force
+                            foreach($file in (Get-ChildItem "$installerSrc\ENB" -Recurse)) {
+                                Copy-Item -Path $file.FullName -Destination "$skyrimPath" -Force
+                            }
                             Remove-Item -Path "$skyrimPath\US\$folderName\mods\Snowfall Weathers\ENB Files - empty into Skyrim Directory\enblocal.ini" -ErrorAction SilentlyContinue
                             foreach($file in (Get-ChildItem "$skyrimPath\US\$folderName\mods\Snowfall Weathers\ENB Files - empty into Skyrim Directory")) {
-                                Copy-Item -Path $file.FullName -Destination "$skyrimPath" -Recurse -Force
-                            }
-                            foreach($file in (Get-ChildItem "$installerSrc\ENB")) {
-                                Copy-Item -Path $file.FullName -Destination "$skyrimPath" -Recurse -Force
+                                Copy-Item -Path $file.FullName -Destination "$skyrimPath" -Force -Recurse -Container
                             }
                             output("Starting ModOrganizer to create ini")
                             [Windows.Forms.MessageBox]::Show("ModOrganizer will launch and then close. Do not touch your mouse or keyboard. Click ok to any pop-ups","Ultimate Skyrim Install", [Windows.Forms.MessageBoxButtons]::OK, [Windows.Forms.MessageBoxIcon]::Information)
