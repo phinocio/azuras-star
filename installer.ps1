@@ -425,6 +425,7 @@
                                 $cleaning = Start-Process "$skyrimPath\US\$folderName\ModOrganizer.exe" -ArgumentList "-p `"$folderName`" `"moshortcut://:Clean $DLC`"" -PassThru
                                 Wait-Process -Id $cleaning.Id
                             }
+                            Wait-Process -Name TES5Edit
                             if($folderName -like "*Gamepad*"){Remove-Item $skyrimPath\ControlMap_Custom.txt -Force}
                             $WshShell = New-Object -comObject WScript.Shell
                             $Shortcut = $WshShell.CreateShortcut("$env:USERPROFILE\Desktop\Ultimate Skyrim.lnk")
