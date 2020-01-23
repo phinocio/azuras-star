@@ -1,76 +1,124 @@
-﻿#Check prerequisites
-    #Is 64-Bit Java installed?
-        if(Get-ItemProperty HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\* | Where-Object DisplayName -like "Java*")
-        {
-                if(Test-Path "$env:ProgramFiles\Java")
-                {
-                    $javaInstalled = $true
-                }
-                else
-                {
-                    $javaInstalled = $false
-                    [Windows.Forms.MessageBox]::Show("Java 32-bit is installed, but not Java 64-Bit. Please click 'Install Java' to install it and then restart the program.","Ultimate Skyrim Install", [Windows.Forms.MessageBoxButtons]::OK, [Windows.Forms.MessageBoxIcon]::Error)
-                }
-            }
-        else
-        {
-                $javaInstalled = $false
-            }
+﻿#Add Assemblies
+#Windows Forms
+Add-Type -AssemblyName System.Windows.Forms
+#Zip Compression
+Add-Type -AssemblyName System.IO.Compression.FileSystem
 
-    #Is 7-Zip installed?
-        if(Get-ItemProperty HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\* | Where-Object DisplayName -like "7-Zip*")
-        {
-                $7ZipInstalled = $true
-            }
-        else
-        {
-                $7ZipInstalled = $false
-            }
+# Add helpers
+Import-Module $PSScriptRoot\PSUtils.psm1
 
-    #Check where it is installed. Have them change the install path if it's in program files.
-        if(Get-ItemProperty HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\* | Where-Object DisplayName -eq "The Elder Scrolls V: Skyrim")
+class AzurasStar {
+    static [string] $installerPath
+    static [string] $installerSrc
+    static $Icon
+    static [string] $installerDownloads
+
+    AzurasStar() {
+        [AzurasStar]::installerPath = (Get-Item .\).FullName
+        [AzurasStar]::installerSrc = "$([AzurasStar]::installerPath)\src"
+        $iconLocation = "$([AzurasStar]::installerSrc)\img\azura.ico"
+        [AzurasStar]::Icon = New-Object system.drawing.icon($iconLocation)
+
+        $downloads = "$([AzurasStar]::installerPath)\Downloads"
+        New-Item -ItemType Directory -Path $downloads -Force
+        [AzurasStar]::installerDownloads = (Get-Item $downloads).FullName
+    }
+}
+
+class Skyrim
+{
+
+    [String] $installPath
+
+    setInstallationPath()
+    {
+        $paths = [Skyrim]::getSkyrimInstalledPaths()
+        # If there are multiple versions of Skyrim in the registry, let the user pick the correct one
+        if ($paths -is [string])
         {
-            try
-            {
-                $skyrimPath = Get-ItemProperty HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\* | Where-Object DisplayName -eq "The Elder Scrolls V: Skyrim" | Select-Object -ExpandProperty InstallLocation
-            }
-            catch
-            {
-                [Windows.Forms.MessageBox]::Show("COULD NOT FIND SKYRIM INSTALL! Please make sure Skyrim is installed somewhere other than program files!`r`nHow to install Skyrim somewhere else:`r`n1. Close steam`r`n2. Open your steam folder (by default, C:\Program Files (x86)\Steam)`r`n3. Navigate to steamapps`r`n4. Open libraryfolders.vdf with Notepad or some other word processor`r`n5. In the same fashion as the file has something like `"1`" `"C:\Program Files (x86)\Steam`" create a new line `"2`" `"C:\X`" where X is the name of the folder you would like to use.`r`n6. Make sure you physically create that folder in that place on your desired drive, and make sure it is empty.`r`n7. Open steam. Go to Steam > Settings > Downloads > Steam Library Folders. The new entry will be there.`r`n8. Steam will have created a steam.dll file in the new folder. Navigate to the folder, and create a new folder named `"steamapps`".`r`n9. When hitting Install on a game, you may choose the installation path for the game in a drop-down menu OR open the game properties and move the install folder under the Local Files tab.","Ultimate Skyrim Install", [Windows.Forms.MessageBoxButtons]::OK, [Windows.Forms.MessageBoxIcon]::Error)
-                exit
-            }
-            if($skyrimPath -contains "*Program Files*")
-            {
-                $skyrimInstalled = $false
-            }
-            else
-            {
-                $skyrimInstalled = $true
-            }
+            $this.installPath = $paths
         }
         else
         {
-            $skyrimInstalled = $false
-        }
-        if(!$skyrimInstalled)
-        {
-            [Windows.Forms.MessageBox]::Show("COULD NOT FIND SKYRIM INSTALL! Please make sure Skyrim is installed somewhere other than program files!`r`nHow to install Skyrim somewhere else:`r`n1. Close steam`r`n2. Open your steam folder (by default, C:\Program Files (x86)\Steam)`r`n3. Navigate to steamapps`r`n4. Open libraryfolders.vdf with Notepad or some other word processor`r`n5. In the same fashion as the file has something like `"1`" `"C:\Program Files (x86)\Steam`" create a new line `"2`" `"C:\X`" where X is the name of the folder you would like to use.`r`n6. Make sure you physically create that folder in that place on your desired drive, and make sure it is empty.`r`n7. Open steam. Go to Steam > Settings > Downloads > Steam Library Folders. The new entry will be there.`r`n8. Steam will have created a steam.dll file in the new folder. Navigate to the folder, and create a new folder named `"steamapps`".`r`n9. When hitting Install on a game, you may choose the installation path for the game in a drop-down menu OR open the game properties and move the install folder under the Local Files tab.","Ultimate Skyrim Install", [Windows.Forms.MessageBoxButtons]::OK, [Windows.Forms.MessageBoxIcon]::Error)
-            exit
+            $self = $this
+
+            $Form = New-Object System.Windows.Forms.Form
+            $Form.Icon = [AzurasStar]::Icon
+            $Form.Text = "Select Skyrim SE location"
+            $Form.AutoSize = $true
+
+            $DropDownLabel = new-object System.Windows.Forms.Label
+            $DropDownLabel.AutoSize = $true;
+            $DropDownLabel.Text = "We detected multiple versions of Skyrim on your machine, please select the correct Skyrim LE installation:"
+
+            $DropDown = new-object System.Windows.Forms.ComboBox
+            ForEach ($path in $paths)
+            {
+                [void] $DropDown.Items.Add($path)
+            }
+            $DropDown.Size = new-object System.Drawing.Size(GetDropDownWidth($DropDown), 10)
+
+            $Button = new-object System.Windows.Forms.Button
+            $Button.Text = "Select"
+            $Button.Add_Click({
+                $self.installPath = $DropDown.SelectedItem.ToString()
+                $Form.Close()
+            })
+
+            $LayoutPanel = New-Object System.Windows.Forms.FlowLayoutPanel
+            $LayoutPanel.Width = 400
+            $LayoutPanel.Controls.Add($DropDownLabel);
+            $LayoutPanel.Controls.Add($DropDown)
+            $LayoutPanel.Controls.Add($Button)
+
+            $Form.controls.add($LayoutPanel)
+
+            $Form.Add_Shown({ $Form.Activate() })
+            [void] $Form.ShowDialog()
+
+            #TODO Check that it is not installed in program files and warn user if it is
+            #TODO Check that the installpath contains a TESV.exe
+            #TODO Provide a text input if the tool can't find an install path automatically
+
         }
 
-#Add Assemblies
-    #Windows Forms
-    Add-Type -AssemblyName System.Windows.Forms
-    #Zip Compression
-    Add-Type -AssemblyName System.IO.Compression.FileSystem
+    }
 
-#Create files and directorys
-    #Path to Azura.exe
-    $installerPath = (Get-Item .\).FullName
-    $installerSrc = "$installerPath\src"
-    #Create downloads folder
-    New-Item -ItemType Directory -Path $installerPath\Downloads -Force
-    $installerDownloads = (Get-Item $installerPath\Downloads).FullName
+    static
+    [PSObject]
+    getSkyrimInstalledPaths()
+    {
+        return Get-ItemProperty HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\* | Where-Object DisplayName -eq "The Elder Scrolls V: Skyrim" | Select-Object -ExpandProperty InstallLocation
+    }
+}
+
+$azurasStar = New-Object -TypeName AzurasStar
+
+$skyrim = New-Object -TypeName Skyrim
+$skyrim.setInstallationPath()
+
+#Check prerequisites
+#Is 64-Bit Java installed?
+if(Get-ItemProperty HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\* | Where-Object DisplayName -like "Java*") {
+    if(Test-Path "$env:ProgramFiles\Java")
+    {
+        $javaInstalled = $true
+    }
+    else
+    {
+        $javaInstalled = $false
+        [Windows.Forms.MessageBox]::Show("Java 32-bit is installed, but not Java 64-Bit. Please click 'Install Java' to install it and then restart the program.","Ultimate Skyrim Install", [Windows.Forms.MessageBoxButtons]::OK, [Windows.Forms.MessageBoxIcon]::Error)
+    }
+} else {
+    $javaInstalled = $false
+}
+
+#Is 7-Zip installed?
+if(Get-ItemProperty HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\* | Where-Object DisplayName -like "7-Zip*") {
+        $7ZipInstalled = $true
+} else {
+    $7ZipInstalled = $false
+}
 
 #Configure and install prereqs
     #Root Form window
@@ -80,10 +128,9 @@
         $configForm.Text = "Azura's Star"
         $configForm.MaximizeBox = $false
         $configForm.MinimizeBox = $false
-        $configForm.FormBorderStyle = 'Fixed3D' 
-        $Icon = New-Object system.drawing.icon ("$installerSrc\img\azura.ico")
-        $configForm.Icon = $Icon
-            
+        $configForm.FormBorderStyle = 'Fixed3D'
+        $configForm.Icon = [AzurasStar]::Icon
+
             $configFormOutput = New-Object System.Windows.Forms.RichTextBox
                 $configFormOutput.Top = 100
                 $configFormOutput.Left = 10
@@ -107,7 +154,7 @@
             $configFormPreReqsJava = New-Object System.Windows.Forms.Button
                 switch($javaInstalled)
                 {
-                    $true 
+                    $true
                     {
                         $configFormPreReqsJava.Text = "Java Installed"
                         $configFormPreReqsJava.Enabled = $false
@@ -123,7 +170,7 @@
                 $configFormPreReqsJava.Size = New-Object System.Drawing.Size(100,25)
                 $configFormPreReqsJava.ADD_CLICK(
                 {
-                    Start-Process $installerSrc\bin\jre-8u231-windows-x64.exe
+                    Start-Process "$([AzurasStar]::installerSrc)\bin\jre-8u231-windows-x64.exe"
                     output("Installing Java")
                 })
                 $configForm.Controls.Add($configFormPreReqsJava)
@@ -131,7 +178,7 @@
             $configFormPreReqs7zip = New-Object System.Windows.Forms.Button
                 switch($7zipInstalled)
                 {
-                    $true 
+                    $true
                     {
                         $configFormPreReqs7zip.Text = "7zip Installed"
                         $configFormPreReqs7zip.Enabled = $false
@@ -147,7 +194,7 @@
                 $configFormPreReqs7zip.Size = New-Object System.Drawing.Size(100,25)
                 $configFormPreReqs7zip.ADD_CLICK(
                 {
-                    Start-Process $installerSrc\bin\7z1900-x64.exe
+                    Start-Process "$([AzurasStar]::installerSrc)\bin\7z1900-x64.exe"
                     output("Installing 7-Zip")
                 })
                 $configForm.Controls.Add($configFormPreReqs7zip)
@@ -199,7 +246,7 @@
                     $configFormGetAPIKey.Width = 288
                     $configFormGetAPIKey.Height = 140
                     $configFormGetAPIKey.Text = "Azura's Star - Personal API Key"
-                    $configFormGetAPIKey.Icon = $Icon
+                    $configFormGetAPIKey.Icon = [AzurasStar]::Icon
                     $configFormGetAPIKey.FormBorderStyle = "Fixed3D"
                     $configFormGetAPIKey.MaximizeBox = $false
                     $configFormGetAPIKey.MinimizeBox = $false
@@ -225,81 +272,82 @@
                     $configFormGetAPIKey.ShowDialog()
 
                     output("Copying ENB files...")
-                    Copy-Item -Path $installerSrc\bin\d3d9.dll -Destination $skyrimPath -Force
-                    Copy-Item -Path $installerSrc\bin\enbhost.exe -Destination $skyrimPath -Force
-                    Copy-Item -Path $installerSrc\bin\enblocal.ini -Destination $skyrimPath -Force
+                    Copy-Item -Path "$([AzurasStar]::installerSrc)\bin\d3d9.dll" -Destination $skyrim.installPath -Force
+                    Copy-Item -Path "$([AzurasStar]::installerSrc)\bin\enbhost.exe" -Destination $skyrim.installPath -Force
+                    Copy-Item -Path "$([AzurasStar]::installerSrc)\bin\enblocal.ini" -Destination $skyrim.installPath -Force
                     output("Copied ENB files")
 
                     output("Creating install directories")
-                    New-Item -ItemType Directory -Path $skyrimPath\US -Force
-                    New-Item -ItemType Directory -Path $skyrimPath\US\Utilities -Force
-                    New-Item -ItemType Directory -Path $skyrimPath\US\Downloads -Force
-                    foreach ($file in (Get-ChildItem -Path "$installerSrc\ultsky"))
+                    New-Item -ItemType Directory -Path "$($skyrim.installPath)\US" -Force
+                    New-Item -ItemType Directory -Path "$($skyrim.installPath)\US\Utilities" -Force
+                    New-Item -ItemType Directory -Path "$($skyrim.installPath)\US\Downloads" -Force
+
+                    foreach($file in (Get-ChildItem -Path "$([AzurasStar]::installerSrc)\ultsky"))
                     {
-                        Copy-Item -Path $file.FullName -Destination "$skyrimPath\US\Downloads" -Force
+                    Copy-Item -Path $file.FullName -Destination "$($skyrim.installPath)\US\Downloads" -Force
                     }
-                    Copy-Item -Path "$installerSrc\bin\US 406hf2 Gamepad - LD Hotfix 1.auto" -Destination $skyrimPath\US -Force
-                    Copy-Item -Path "$installerSrc\bin\US 406hf2 Keyboard - LD Hotfix 1.auto" -Destination $skyrimPath\US -Force
+                    Copy-Item -Path "$([AzurasStar]::installerSrc)\bin\US 406hf2 Gamepad - LD Hotfix 1.auto" -Destination "$($skyrim.installPath)\US" -Force
+                    Copy-Item -Path "$([AzurasStar]::installerSrc)\bin\US 406hf2 Keyboard - LD Hotfix 1.auto" -Destination "$($skyrim.installPath)\US" -Force
 
                     output("Starting manual downloads, this might take a few minutes. This sometimes causes the window to not respond even though it's still working. Be patient :)")
 
-                    if(!(Test-Path $installerDownloads\skse_1_07_03.7z)) {
+                    if(!(Test-Path "$([AzurasStar]::installerDownloads)\skse_1_07_03.7z")) {
                         output("Downloading SKSE...")
-                        Invoke-WebRequest -Uri "https://skse.silverlock.org/beta/skse_1_07_03.7z" -OutFile "$installerDownloads\SKSE_install.7z"
+                        Invoke-WebRequest -Uri "https://skse.silverlock.org/beta/skse_1_07_03.7z" -OutFile "$([AzurasStar]::installerDownloads)\SKSE_install.7z"
                         output("Downloaded SKSE")
                     } else {output("SKSE already downloaded") }
 
-                    if(!(Test-Path "$installerDownloads\SKSEPreloader.zip")) {
+                    if(!(Test-Path "$([AzurasStar]::installerDownloads)\SKSEPreloader.zip")) {
                         output("Downloading SKSE preloader...")
                         $preloaderDownloadLink = Invoke-RestMethod -Uri "https://api.nexusmods.com/v1/games/skyrim/mods/75795/files/1000207412/download_link.json" -Headers @{ "apikey" = "$apiKey" }
-                        Invoke-WebRequest -Uri $preloaderDownloadLink[0].URI -OutFile "$installerDownloads\SKSEPreloader.zip"
+                        Invoke-WebRequest -Uri $preloaderDownloadLink[0].URI -OutFile "$([AzurasStar]::installerDownloads)\SKSEPreloader.zip"
                         output("Downloaded SKSE prelopader")
                     } else {output("SKSE prelaoder already downloaded") }
 
-                    if (!(Test-Path $skyrimPath\skse_loader.exe)) {
+                    if (!(Test-Path "$($skyrim.installPath)\skse_loader.exe")) {
                         output("Installing SKSE...")
-                        & "$env:ProgramFiles\7-Zip\7z.exe" "x" "$installerDownloads\SKSE_install.7z" "-o$installerDownloads" > $null
-                        Get-ChildItem -Path "$installerDownloads\skse_1_07_03" | Copy-Item -Destination $skyrimPath -Recurse -Container -Force
+                        & "$env:ProgramFiles\7-Zip\7z.exe" "x" "$([AzurasStar]::installerDownloads)\SKSE_install.7z" "-o "+[AzurasStar]::installerDownloads > $null
+                        Get-ChildItem -Path "$([AzurasStar]::installerDownloads)\skse_1_07_03" | Copy-Item -Destination $skyrim.installPath -Recurse -Container -Force
                         output("Installed SKSE")
                     }else{output("SKSE already installed") }
 
-                    if (!(Test-Path "$skyrimPath\d3dx9_42.dll")) {
+                    if (!(Test-Path "$($skyrim.installPath)\d3dx9_42.dll")) {
                         output("Installing SKSE preloader...")
-                        $SKSEzip = Get-Item "$installerDownloads\SKSEPreloader.zip"
-                        [System.IO.Compression.ZipFile]::ExtractToDirectory($SKSEzip.FullName, $skyrimPath)
+                        $SKSEzip = Get-Item "$([AzurasStar]::installerDownloads)\SKSEPreloader.zip"
+                        [System.IO.Compression.ZipFile]::ExtractToDirectory($SKSEzip.FullName, $skyrim.installPath)
                         output("Installed SKSE preloader")
                     }else{output("SKSE already installed") }
 
-                    if(!(Test-Path -Path $installerDownloads\TES5Edit.7z)) {
+                    if(!(Test-Path -Path "$([AzurasStar]::installerDownloads)\TES5Edit.7z")) {
                         output("Downloading TES5Edit...")
                         $TES5EditDownloadLink = Invoke-RestMethod -Uri "https://api.nexusmods.com/v1/games/skyrim/mods/25859/files/1000309592/download_link.json" -Headers @{ "apikey" = "$apiKey" }
-                        Invoke-WebRequest -Uri $TES5EditDownloadLink[0].URI -OutFile "$installerDownloads\TES5Edit.7z"
+                        Invoke-WebRequest -Uri $TES5EditDownloadLink[0].URI -OutFile "$([AzurasStar]::installerDownloads)\TES5Edit.7z"
                         output("Downloaded TES5Edit")
                     } else {output("TES5Edit already downloaded") }
 
-                    if (!(Test-Path -Path $skyrimPath\US\Utilities\TES5Edit.exe))
+                    if (!(Test-Path -Path "$($skyrim.installPath)\US\Utilities\TES5Edit.exe"))
                         {output("Extracting TES5Edit...")
-                        & "$env:ProgramFiles\7-Zip\7z.exe" "x" "$installerDownloads/TES5Edit.7z" "-o$skyrimPath\US\Utilities" > $null
-                        Remove-Item "$installerDownloads\TES5Edit.7z"
+                        & "$env:ProgramFiles\7-Zip\7z.exe" "x" "$([AzurasStar]::installerDownloads)/TES5Edit.7z" "-o$($skyrim.installPath)\US\Utilities" > $null
+                        Remove-Item "$([AzurasStar]::installerDownloads)\TES5Edit.7z"
                         output("Extracted TES5Edit")
                     }else{output("TES5Edit already installed")}
-                    
-                    if(!(Test-Path "$skyrimPath\US\Downloads\NVAC - New Vegas Anti Crash-53635-7-5-1-0.zip")) {
+
+                    if(!(Test-Path "$($skyrim.installPath)\US\Downloads\NVAC - New Vegas Anti Crash-53635-7-5-1-0.zip")) {
                         output("Downloading NVAC...")
                         $NVACDownloadLink = Invoke-RestMethod -Uri "https://api.nexusmods.com/v1/games/newvegas/mods/53635/files/1000039152/download_link.json" -Headers @{"apikey"="$apiKey"}
-                        Invoke-WebRequest -Uri $NVACDownloadLink[0].URI -OutFile "$skyrimPath\US\Downloads\NVAC - New Vegas Anti Crash-53635-7-5-1-0.zip"
+                        Invoke-WebRequest -Uri $NVACDownloadLink[0].URI -OutFile "$($skyrim.installPath)\US\Downloads\NVAC - New Vegas Anti Crash-53635-7-5-1-0.zip"
                         output("Downloaded NVAC")
                     }else{output("NVAC already downloaded")}
 
-                    if(!(Test-Path "$skyrimPath\US\Downloads\Wyrmstooth 1.17B.zip")) {
+                    if(!(Test-Path "$($skyrim.installPath)\US\Downloads\Wyrmstooth 1.17B.zip")) {
                         output("Downloading Wyrmstooth...")
-                        Invoke-WebRequest -Uri "https://archive.org/download/Wyrmstooth1.17B/Wyrmstooth%201.17B.zip" -OutFile "$skyrimPath\US\Downloads\Wyrmstooth 1.17B.zip"
+                        Invoke-WebRequest -Uri "https://archive.org/download/Wyrmstooth1.17B/Wyrmstooth%201.17B.zip" -OutFile "$($skyrim.installPath)\US\Downloads\Wyrmstooth 1.17B.zip"
                         output("Downloaded Wyrmstooth")
                     }else{output("Wyrmstooth already downloaded")}
-        
+
                     output("Getting VideoMemory")
-                    Start-Process $installerPath\src\bin\gpuz.exe -ArgumentList "-dump $installerPath\src\bin\gpuinfo.xml" -Wait
-                    [xml]$gpuInfo = Get-Content "$installerPath\src\bin\gpuinfo.xml"
+                    Start-Process "$([AzurasStar]::installerPath)\src\bin\gpuz.exe" -ArgumentList "-dump $([AzurasStar]::installerPath)\src\bin\gpuinfo.xml" -Wait
+                    [xml]$gpuInfo = Get-Content "$([AzurasStar]::installerPath)\src\bin\gpuinfo.xml"
                     $VRAM = $gpuInfo.gpuz_dump.card.memsize
                     $RAM = (Get-WmiObject -class "Win32_PhysicalMemory" | Measure-Object -Property Capacity -Sum).Sum/1024/1024
                     $videoMem = "Video Memory: " + (($RAM + $VRAM) - 2048) + " MB"
@@ -311,14 +359,14 @@
                     output("Setting ENB preset")
                     $configFormENBPreset.SelectedIndex = $PresetIndex
                     output("Setting VideoMemory in enblocal.ini")
-                    (Get-Content -Path "$installerSrc\bin\enblocal.ini" -raw) -replace "INSERTRAMHERE",(($RAM + $VRAM) - 2048) | Set-Content "$skyrimPath\enblocal.ini"
-                    if(!(Test-Path -Path "$skyrimPath\US\Downloads\US 4.0.6hf2 DynDOLOD.rar"))
+                    (Get-Content -Path "$([AzurasStar]::installerSrc)\bin\enblocal.ini" -raw) -replace "INSERTRAMHERE",(($RAM + $VRAM) - 2048) | Set-Content "$($skyrim.installPath)\enblocal.ini"
+                    if(!(Test-Path -Path "$($skyrim.installPath)\US\Downloads\US 4.0.6hf2 DynDOLOD.rar"))
                     {
                         [Windows.Forms.MessageBox]::Show("Due to the size of DynDOLOD, it must be downloaded manually. You will be directed to the download page. Please drag and drop the file into the downloads folder that will open when you hit OK","Ultimate Skyrim Install", [Windows.Forms.MessageBoxButtons]::OK, [Windows.Forms.MessageBoxIcon]::Information)
                         Start-Process "https://mega.nz/#!SANlQY7R!deorWwQBDDw4GoHYfJ-7NJVOWQ1U-KsoH1HrdG4PFaI"
-                        Start-Process "$skyrimPath\US\Downloads"
+                        Start-Process "$($skyrim.installPath)\US\Downloads"
                         output("Downloading DynDOLOD")
-                        while(!(Test-Path -Path "$skyrimPath\US\Downloads\US 4.0.6hf2 DynDOLOD.rar")){}
+                        while(!(Test-Path -Path "$($skyrim.installPath)\US\Downloads\US 4.0.6hf2 DynDOLOD.rar")){}
                         [Windows.Forms.MessageBox]::Show("Now you can run Automaton!","Ultimate Skyrim Install", [Windows.Forms.MessageBoxButtons]::OK, [Windows.Forms.MessageBoxIcon]::Information)
                     }else{output("DynDOLOD already downloaded")}
                     output("Ready to run Automaton! Double check your settings and rerun Preinstall if you need to change something")
@@ -349,19 +397,19 @@
                 $configForm.Controls.Add($configFormENBLabel)
 
             $configFormInstallPathLabel = New-Object System.Windows.Forms.TextBox
-                $configFormInstallPathLabel.Text = "Install Path: $skyrimPath\US"
+                $configFormInstallPathLabel.Text = "Install Path: $($skyrim.installPath)\US"
                 $configFormInstallPathLabel.Top = 100
                 $configFormInstallPathLabel.Left = 320
                 $configFormInstallPathLabel.Size = New-Object System.Drawing.Size(400,25)
-                $configFormInstallPathLabel.ReadOnly = $true 
+                $configFormInstallPathLabel.ReadOnly = $true
                 $configForm.Controls.Add($configFormInstallPathLabel)
 
             $configFormDownloadPathLabel = New-Object System.Windows.Forms.TextBox
-                $configFormDownloadPathLabel.Text = "Download Path: $skyrimPath\US\Downloads"
+                $configFormDownloadPathLabel.Text = "Download Path: $($skyrim.installPath)\US\Downloads"
                 $configFormDownloadPathLabel.Top = 135
                 $configFormDownloadPathLabel.Left = 320
                 $configFormDownloadPathLabel.Size = New-Object System.Drawing.Size(400,25)
-                $configFormDownloadPathLabel.ReadOnly = $true 
+                $configFormDownloadPathLabel.ReadOnly = $true
                 $configForm.Controls.Add($configFormDownloadPathLabel)
 
             $startAutomaton = New-Object System.Windows.Forms.Button
@@ -373,32 +421,32 @@
                 $startAutomaton.ADD_CLICK(
                 {
                     output("Running Automaton")
-                    [Windows.Forms.MessageBox]::Show("When Automaton launches, select either Keyboard or Gamepad from $skyrimPath\US and then copy the install and download paths into their respective fields.`r`nAllow Automaton to access your Nexus account and handle NXM links (required). If you are a Nexus premium member, Automaton can download each mod for you automatically by clicking on the switch at the top.`r`nOtherwise, click on the box with the arrow inside next to each mod to go to the download page. You can hover over the mod's name in Automaton to see which specific file needs to be downloaded.`r`nAfter all of the mods have been downloaded, click on 'Install modpack.' After Automaton finishes installing the mods, close it to continue the install process.","Ultimate Skyrim Install", [Windows.Forms.MessageBoxButtons]::OK, [Windows.Forms.MessageBoxIcon]::Information)
-                    Start-Process "$installerSrc\bin\automaton\Automaton.exe" -Wait
+                    [Windows.Forms.MessageBox]::Show("When Automaton launches, select either Keyboard or Gamepad from $($skyrim.installPath)\US and then copy the install and download paths into their respective fields.`r`nAllow Automaton to access your Nexus account and handle NXM links (required). If you are a Nexus premium member, Automaton can download each mod for you automatically by clicking on the switch at the top.`r`nOtherwise, click on the box with the arrow inside next to each mod to go to the download page. You can hover over the mod's name in Automaton to see which specific file needs to be downloaded.`r`nAfter all of the mods have been downloaded, click on 'Install modpack.' After Automaton finishes installing the mods, close it to continue the install process.","Ultimate Skyrim Install", [Windows.Forms.MessageBoxButtons]::OK, [Windows.Forms.MessageBoxIcon]::Information)
+                    Start-Process "$([AzurasStar]::installerSrc)\bin\automaton\Automaton.exe" -Wait
                     $automatonSuccess = [Windows.Forms.MessageBox]::Show("Did Automaton complete? If it crashed, select no.","Ultimate Skyrim Install", [Windows.Forms.MessageBoxButtons]::YesNo, [Windows.Forms.MessageBoxIcon]::Information)
                     switch($automatonSuccess)
                     {
                         "Yes"
                         {
                             output("Configuring ENB")
-                            $folderName = (Get-ChildItem -Path "$skyrimPath\US" | Where-Object Name -like "US*" | Where-Object Attributes -eq "Directory").Name -replace "\\",""
+                            $folderName = (Get-ChildItem -Path "$($skyrim.installPath)\US" | Where-Object Name -like "US*" | Where-Object Attributes -eq "Directory").Name -replace "\\",""
                             $configFormENBPreset.Enabled = $false
-                            Copy-Item -Path "$installerSrc\ini\$($configFormENBPreset.SelectedIndex)\Skyrim.ini" -Destination "$skyrimPath\US\$folderName\profiles\$folderName\Skyrim.ini" -Force
-                            Copy-Item -Path "$installerSrc\ini\$($configFormENBPreset.SelectedIndex)\SkyrimPrefs.ini" -Destination "$skyrimPath\US\$folderName\profiles\$folderName\SkyrimPrefs.ini" -Force
-                            foreach($file in (Get-ChildItem "$installerSrc\ENB" -Recurse)) {
-                                Copy-Item -Path $file.FullName -Destination "$skyrimPath" -Force
+                            Copy-Item -Path "$([AzurasStar]::installerSrc)\ini\$($configFormENBPreset.SelectedIndex)\Skyrim.ini" -Destination "$($skyrim.installPath)\US\$folderName\profiles\$folderName\Skyrim.ini" -Force
+                            Copy-Item -Path "$([AzurasStar]::installerSrc)\ini\$($configFormENBPreset.SelectedIndex)\SkyrimPrefs.ini" -Destination "$($skyrim.installPath)\US\$folderName\profiles\$folderName\SkyrimPrefs.ini" -Force
+                            foreach($file in (Get-ChildItem "$([AzurasStar]::installerSrc)\ENB" -Recurse)) {
+                                Copy-Item -Path $file.FullName -Destination "$($skyrim.installPath)" -Force
                             }
-                            Remove-Item -Path "$skyrimPath\US\$folderName\mods\Snowfall Weathers\ENB Files - empty into Skyrim Directory\enblocal.ini" -ErrorAction SilentlyContinue
-                            foreach($file in (Get-ChildItem "$skyrimPath\US\$folderName\mods\Snowfall Weathers\ENB Files - empty into Skyrim Directory")) {
-                                Copy-Item -Path $file.FullName -Destination "$skyrimPath" -Force -Recurse -Container
+                            Remove-Item -Path "$($skyrim.installPath)\US\$folderName\mods\Snowfall Weathers\ENB Files - empty into Skyrim Directory\enblocal.ini" -ErrorAction SilentlyContinue
+                            foreach($file in (Get-ChildItem "$($skyrim.installPath)\US\$folderName\mods\Snowfall Weathers\ENB Files - empty into Skyrim Directory")) {
+                                Copy-Item -Path $file.FullName -Destination "$($skyrim.installPath)" -Force -Recurse -Container
                             }
                             output("Starting ModOrganizer to create ini")
                             [Windows.Forms.MessageBox]::Show("ModOrganizer will launch and then close. Do not touch your mouse or keyboard. Click ok to any pop-ups","Ultimate Skyrim Install", [Windows.Forms.MessageBoxButtons]::OK, [Windows.Forms.MessageBoxIcon]::Information)
-                            Start-Process "$skyrimPath\US\$folderName\ModOrganizer.exe"
+                            Start-Process "$($skyrim.installPath)\US\$folderName\ModOrganizer.exe"
                             Start-Sleep -Seconds 5
                             Stop-Process -Name ModOrganizer
                             [Windows.Forms.MessageBox]::Show("The installer will now clean your DLC. Just dismiss the developer message, or any error messages that pop up. The DLC should still get cleaned","Ultimate Skyrim Install", [Windows.Forms.MessageBoxButtons]::OK, [Windows.Forms.MessageBoxIcon]::Information)
-                            $modOrganizerIni = (Get-Content -Path "$skyrimPath\US\$folderName\ModOrganizer.ini")
+                            $modOrganizerIni = (Get-Content -Path "$($skyrim.installPath)\US\$folderName\ModOrganizer.ini")
                             foreach($line in $modOrganizerIni)
                             {
                                 if($line -like "size=*")
@@ -410,29 +458,29 @@
                             $DLCList = "Update","Dawnguard","Dragonborn","Hearthfires"
                             $newEXEs = ""
                             $i = $numberOfEXE + 1
-                            $DLCPATH = $skyrimPath -replace '\\',"/"
+                            $DLCPATH = $skyrim.installPath -replace '\\',"/"
                             foreach($DLC in $DLCList)
                             {
                                 $newEXEs = $newEXEs + "$i\title=Clean $DLC`r`n$i\toolbar=false`r`n$i\ownicon=true`r`n$i\binary=$DLCPATH/US/Utilities/TES5Edit.exe`r`n$i\arguments=`"-autoexit -quickautoclean -autoload $DLC.esm`"`r`n$i\workingDirectory=`r`n$i\steamAppID=`r`n"
                                 $i++
                             }
                             $newEXEs = $newEXEs + "size=$($i-1)"
-                            (Get-Content -Path "$skyrimPath\US\$folderName\ModOrganizer.ini" -Raw) -replace "size=$numberOfEXE",$newEXEs | Set-Content -Path "$skyrimPath\US\$folderName\ModOrganizer.ini"
-                            (Get-Content -Path "$skyrimPath\US\$folderName\ModOrganizer.ini" -Raw) + "[Settings]`r`nlanguage=en`r`noverwritingLooseFilesColor=@Variant(\0\0\0\x43\x1@@\xff\xff\0\0\0\0\0\0)`r`noverwrittenLooseFilesColor=@Variant(\0\0\0\x43\x1@@\0\0\xff\xff\0\0\0\0)`r`noverwritingArchiveFilesColor=@Variant(\0\0\0\x43\x1@@\xff\xff\0\0\xff\xff\0\0)`r`noverwrittenArchiveFilesColor=@Variant(\0\0\0\x43\x1@@\0\0\xff\xff\xff\xff\0\0)`r`ncontainsPluginColor=@Variant(\0\0\0\x43\x1@@\0\0\0\0\xff\xff\0\0)`r`ncontainedColor=@Variant(\0\0\0\x43\x1@@\0\0\0\0\xff\xff\0\0)`r`ncompact_downloads=false`r`nmeta_downloads=false`r`nuse_prereleases=false`r`ncolorSeparatorScrollbars=true`r`nlog_level=1`r`ncrash_dumps_type=1`r`ncrash_dumps_max=5`r`noffline_mode=false`r`nuse_proxy=false`r`nendorsement_integration=true`r`nhide_api_counter=false`r`nload_mechanism=0`r`nhide_unchecked_plugins=false`r`nforce_enable_core_files=true`r`ndisplay_foreign=true`r`nlock_gui=false`r`narchive_parsing_experimental=false" | Set-Content -Path "$skyrimPath\US\$folderName\ModOrganizer.ini"
+                            (Get-Content -Path "$($skyrim.installPath)\US\$folderName\ModOrganizer.ini" -Raw) -replace "size=$numberOfEXE",$newEXEs | Set-Content -Path "$($skyrim.installPath)\US\$folderName\ModOrganizer.ini"
+                            (Get-Content -Path "$($skyrim.installPath)\US\$folderName\ModOrganizer.ini" -Raw) + "[Settings]`r`nlanguage=en`r`noverwritingLooseFilesColor=@Variant(\0\0\0\x43\x1@@\xff\xff\0\0\0\0\0\0)`r`noverwrittenLooseFilesColor=@Variant(\0\0\0\x43\x1@@\0\0\xff\xff\0\0\0\0)`r`noverwritingArchiveFilesColor=@Variant(\0\0\0\x43\x1@@\xff\xff\0\0\xff\xff\0\0)`r`noverwrittenArchiveFilesColor=@Variant(\0\0\0\x43\x1@@\0\0\xff\xff\xff\xff\0\0)`r`ncontainsPluginColor=@Variant(\0\0\0\x43\x1@@\0\0\0\0\xff\xff\0\0)`r`ncontainedColor=@Variant(\0\0\0\x43\x1@@\0\0\0\0\xff\xff\0\0)`r`ncompact_downloads=false`r`nmeta_downloads=false`r`nuse_prereleases=false`r`ncolorSeparatorScrollbars=true`r`nlog_level=1`r`ncrash_dumps_type=1`r`ncrash_dumps_max=5`r`noffline_mode=false`r`nuse_proxy=false`r`nendorsement_integration=true`r`nhide_api_counter=false`r`nload_mechanism=0`r`nhide_unchecked_plugins=false`r`nforce_enable_core_files=true`r`ndisplay_foreign=true`r`nlock_gui=false`r`narchive_parsing_experimental=false" | Set-Content -Path "$($skyrim.installPath)\US\$folderName\ModOrganizer.ini"
                             foreach($DLC in $DLCList)
                             {
                                 output("Cleaning $DLC.esm")
-                                $cleaning = Start-Process "$skyrimPath\US\$folderName\ModOrganizer.exe" -ArgumentList "-p `"$folderName`" `"moshortcut://:Clean $DLC`"" -PassThru
+                                $cleaning = Start-Process "$($skyrim.installPath)\US\$folderName\ModOrganizer.exe" -ArgumentList "-p `"$folderName`" `"moshortcut://:Clean $DLC`"" -PassThru
                                 Wait-Process -Id $cleaning.Id
                             }
                             Wait-Process -Name TES5Edit
-                            if($folderName -like "*Gamepad*"){Remove-Item $skyrimPath\ControlMap_Custom.txt -Force}
+                            if($folderName -like "*Gamepad*"){Remove-Item "$($skyrim.installPath)\ControlMap_Custom.txt" -Force}
                             $WshShell = New-Object -comObject WScript.Shell
                             $Shortcut = $WshShell.CreateShortcut("$env:USERPROFILE\Desktop\Ultimate Skyrim.lnk")
-                            $targetPath = "`"$skyrimPath\US\$folderName\ModOrganizer.exe`""
+                            $targetPath = "`"$($skyrim.installPath)\US\$folderName\ModOrganizer.exe`""
                             $Shortcut.Arguments = "-p `"$folderName`" `"moshortcut://:SKSE`""
                             $Shortcut.TargetPath = $targetPath
-                            $shortcut.IconLocation = "$skyrimPath\TESV.exe"
+                            $shortcut.IconLocation = "$($skyrim.installPath)\TESV.exe"
                             $Shortcut.WindowStyle = 7
                             $Shortcut.Save()
                             $postCompletion = [Windows.Forms.MessageBox]::Show("Congratulations! Ultimate Skyrim is installed and a shortcut has been created on your desktop! Would you like to launch Ultimate Skyrim now?","Ultimate Skyrim Install", [Windows.Forms.MessageBoxButtons]::YesNo, [Windows.Forms.MessageBoxIcon]::Exclamation)
@@ -440,7 +488,7 @@
                             {
                                 "Yes"
                                 {
-                                    Start-Process "`"$skyrimPath\US\$folderName\ModOrganizer.exe`"" -ArgumentList "-p `"$folderName`" `"moshortcut://:SKSE`""
+                                    Start-Process "`"$($skyrim.installPath)\US\$folderName\ModOrganizer.exe`"" -ArgumentList "-p `"$folderName`" `"moshortcut://:SKSE`""
                                     $configForm.Close()
                                 }
                                 "No"
