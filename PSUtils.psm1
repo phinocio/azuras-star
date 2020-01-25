@@ -12,6 +12,6 @@ function GetDropDownWidth
             $maxWidth = $width;
         }
     }
-    # Return the width plus a bit of padding
-    return $maxWidth + 10
+    # Return the width plus a bit of padding for the arrow in the box
+    return $maxWidth + 40
 }

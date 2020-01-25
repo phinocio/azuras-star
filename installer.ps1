@@ -1,100 +1,13 @@
-﻿#Add Assemblies
-#Windows Forms
+﻿Using module .\PSClasses\AzurasStar.psm1
+Using module .\PSClasses\Skyrim.psm1
 Add-Type -AssemblyName System.Windows.Forms
-#Zip Compression
-Add-Type -AssemblyName System.IO.Compression.FileSystem
-
+Add-Type -AssemblyName System.IO.Compression.FileSystem #Zip Compression
 # Add helpers
 Import-Module $PSScriptRoot\PSUtils.psm1
 
-class AzurasStar {
-    static [string] $installerPath
-    static [string] $installerSrc
-    static $Icon
-    static [string] $installerDownloads
-
-    AzurasStar() {
-        [AzurasStar]::installerPath = (Get-Item .\).FullName
-        [AzurasStar]::installerSrc = "$([AzurasStar]::installerPath)\src"
-        $iconLocation = "$([AzurasStar]::installerSrc)\img\azura.ico"
-        [AzurasStar]::Icon = New-Object system.drawing.icon($iconLocation)
-
-        $downloads = "$([AzurasStar]::installerPath)\Downloads"
-        New-Item -ItemType Directory -Path $downloads -Force
-        [AzurasStar]::installerDownloads = (Get-Item $downloads).FullName
-    }
-}
-
-class Skyrim
-{
-
-    [String] $installPath
-
-    setInstallationPath()
-    {
-        $paths = [Skyrim]::getSkyrimInstalledPaths()
-        # If there are multiple versions of Skyrim in the registry, let the user pick the correct one
-        if ($paths -is [string])
-        {
-            $this.installPath = $paths
-        }
-        else
-        {
-            $self = $this
-
-            $Form = New-Object System.Windows.Forms.Form
-            $Form.Icon = [AzurasStar]::Icon
-            $Form.Text = "Select Skyrim SE location"
-            $Form.AutoSize = $true
-
-            $DropDownLabel = new-object System.Windows.Forms.Label
-            $DropDownLabel.AutoSize = $true;
-            $DropDownLabel.Text = "We detected multiple versions of Skyrim on your machine, please select the correct Skyrim LE installation:"
-
-            $DropDown = new-object System.Windows.Forms.ComboBox
-            ForEach ($path in $paths)
-            {
-                [void] $DropDown.Items.Add($path)
-            }
-            $DropDown.Size = new-object System.Drawing.Size(GetDropDownWidth($DropDown), 10)
-
-            $Button = new-object System.Windows.Forms.Button
-            $Button.Text = "Select"
-            $Button.Add_Click({
-                $self.installPath = $DropDown.SelectedItem.ToString()
-                $Form.Close()
-            })
-
-            $LayoutPanel = New-Object System.Windows.Forms.FlowLayoutPanel
-            $LayoutPanel.Width = 400
-            $LayoutPanel.Controls.Add($DropDownLabel);
-            $LayoutPanel.Controls.Add($DropDown)
-            $LayoutPanel.Controls.Add($Button)
-
-            $Form.controls.add($LayoutPanel)
-
-            $Form.Add_Shown({ $Form.Activate() })
-            [void] $Form.ShowDialog()
-
-            #TODO Check that it is not installed in program files and warn user if it is
-            #TODO Check that the installpath contains a TESV.exe
-            #TODO Provide a text input if the tool can't find an install path automatically
-
-        }
-
-    }
-
-    static
-    [PSObject]
-    getSkyrimInstalledPaths()
-    {
-        return Get-ItemProperty HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\* | Where-Object DisplayName -eq "The Elder Scrolls V: Skyrim" | Select-Object -ExpandProperty InstallLocation
-    }
-}
-
 $azurasStar = New-Object -TypeName AzurasStar
 
-$skyrim = New-Object -TypeName Skyrim
+$skyrim = [Skyrim]::new([Windows.Forms.MessageBox])
 $skyrim.setInstallationPath()
 
 #Check prerequisites
