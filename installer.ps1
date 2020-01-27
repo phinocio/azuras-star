@@ -1,9 +1,165 @@
-﻿Using module .\PSClasses\AzurasStar.psm1
-Using module .\PSClasses\Skyrim.psm1
-Add-Type -AssemblyName System.Windows.Forms
+﻿Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.IO.Compression.FileSystem #Zip Compression
 # Add helpers
-Import-Module $PSScriptRoot\PSUtils.psm1
+Import-Module .\src\PSClasses\PSUtils.psm1
+
+# Add Classes
+class AzurasStar {
+    static [string] $installerPath
+    static [string] $installerSrc
+    static $Icon
+    static [string] $installerDownloads
+
+    AzurasStar() {
+        [AzurasStar]::installerPath = (Get-Item .\).FullName
+        [AzurasStar]::installerSrc = "$([AzurasStar]::installerPath)\src"
+        $iconLocation = "$([AzurasStar]::installerSrc)\img\azura.ico"
+        [AzurasStar]::Icon = New-Object system.drawing.icon($iconLocation)
+
+        $downloads = "$([AzurasStar]::installerPath)\Downloads"
+        New-Item -ItemType Directory -Path $downloads -Force
+        [AzurasStar]::installerDownloads = (Get-Item $downloads).FullName
+    }
+}
+
+class Skyrim {
+
+    $MessageBox
+
+    [String] $installPath
+
+    [bool] $multipleInstalls
+
+    Skyrim($messageBox) {
+        $this.MessageBox = $messageBox
+    }
+
+    setInstallationPath() {
+        $paths = [Skyrim]::getSkyrimInstalledPaths()
+        # If there are multiple versions of Skyrim in the registry, let the user pick the correct one
+        if($paths -eq $null) {
+            $this.MessageBox::Show("Could not automatically detect a Skyrim install, please enter manually", "Azura's Star Install");
+            $this.installPath = $this.enterInstallPathManually()
+        } elseif($paths -is [string]) {
+             $this.installPath = $paths
+         }else {
+            $this.installPath = $this.getPathFromList($paths)
+        }
+
+        #TODO Check that it is not installed in program files and warn user if it is
+        if(![Skyrim]::validSkyrimInstall($this.installPath) -and $this.multipleInstalls) {
+                $dialogResult = $this.MessageBox::Show("The selected path is not valid, it must contain a TESV.exe and NOT be in Program Files. Select yes to pick again or no to enter manually","Ultimate Skyrim Install", "YesNo");
+                if($dialogResult -eq "Yes") {
+                    $this.setInstallationPath()
+                } else {
+                    $this.enterInstallPathManually()
+                }
+        } elseif(![Skyrim]::validSkyrimInstall($this.installPath)) {
+            $this.MessageBox::Show("Not a valid Skyrim LE install path, please ensure you select the root skyrim folder that contains a TESV.exe", "Azura's Star Install");
+            $this.enterInstallPathManually()
+        }
+    }
+
+    [String]
+    enterInstallPathManually() {
+        $localInstallPath = ""
+        $configFormGetInstallPath = New-Object System.Windows.Forms.Form
+        $configFormGetInstallPath.Width = 500
+        $configFormGetInstallPath.Height = 300
+        $configFormGetInstallPath.Text = "Azura's Star - Skyrim install path"
+        $configFormGetInstallPath.Icon = [AzurasStar]::Icon
+        $configFormGetInstallPath.FormBorderStyle = "Fixed3D"
+        $configFormGetInstallPath.MaximizeBox = $false
+        $configFormGetInstallPath.MinimizeBox = $false
+        $configFormGetInstallPath.TopMost = $true
+        $getInstallPath = New-Object System.Windows.Forms.TextBox
+        $getInstallPath.Top = 10
+        $getInstallPath.Left = 10
+        $getInstallPath.Size = New-Object System.Drawing.Size(300)
+        $getInstallPath.Multiline = $false
+        $configFormGetInstallPath.Controls.Add($getInstallPath)
+
+        $selectPath = New-Object System.Windows.Forms.Button
+        $selectPath.Text = "Select"
+        $selectPath.Top = 70
+        $selectPath.Left = 97.5
+        $selectPath.ADD_CLICK({
+            Set-Variable -scope 1 -Name "localInstallPath" -Value $getInstallPath.Text
+            $configFormGetInstallPath.Close()
+        })
+        $configFormGetInstallPath.Controls.Add($selectPath)
+        $configFormGetInstallPath.ShowDialog()
+
+        return $localInstallPath
+    }
+
+    [String]
+    getPathFromList($paths) {
+        $localInstallPath = ""
+        $this.multipleInstalls = $true
+
+        $Form = New-Object System.Windows.Forms.Form
+        $Form.Icon = [AzurasStar]::Icon
+        $Form.Text = "Select Skyrim SE location"
+        $Form.AutoSize = $true
+
+        $DropDownLabel = new-object System.Windows.Forms.Label
+        $DropDownLabel.AutoSize = $true;
+        $DropDownLabel.Text = "We detected multiple versions of Skyrim on your machine.`r`nPlease select the correct Skyrim LE installation:"
+
+        $DropDown = new-object System.Windows.Forms.ComboBox
+        ForEach($path in $paths) {
+            [void] $DropDown.Items.Add($path)
+        }
+        $DropDown.DropDownStyle = "DropDownList"
+        $DropDown.SelectedItem = $DropDown.Items[0]
+        $DropDown.Size = new-object System.Drawing.Size(GetDropDownWidth($DropDown), 10)
+
+        $Button = new-object System.Windows.Forms.Button
+        $Button.Text = "Select"
+        $Button.Add_Click({
+            Set-Variable -scope 1 -Name "localInstallPath" -Value $DropDown.SelectedItem.ToString()
+            $Form.Close()
+        })
+
+        $LayoutPanel = New-Object System.Windows.Forms.FlowLayoutPanel
+        $LayoutPanel.AutoSize = $true
+        $LayoutPanel.Controls.Add($DropDownLabel);
+        $LayoutPanel.Controls.Add($DropDown)
+        $LayoutPanel.Controls.Add($Button)
+        $LayoutPanel.FlowDirection = "TopDown"
+
+        $Form.controls.add($LayoutPanel)
+
+        $Form.Add_Shown({$Form.Activate()})
+        [void] $Form.ShowDialog()
+
+        return $localInstallPath
+    }
+
+    [bool]
+    static
+    validSkyrimInstall($path) {
+        if([Skyrim]::testTESVexe($path)) {
+            return $true
+        } else {
+            return $false
+        }
+    }
+
+    [bool]
+    static
+    testTESVexe($path) {
+        $return = Test-Path "$($path)\TESV.exe"
+        return $return
+    }
+
+    static
+    [PSObject]
+    getSkyrimInstalledPaths() {
+        return Get-ItemProperty HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\* | Where-Object DisplayName -eq "The Elder Scrolls V: Skyrim" | Select-Object -ExpandProperty InstallLocation
+    }
+}
 
 $azurasStar = New-Object -TypeName AzurasStar
 
@@ -358,7 +514,6 @@ if(Get-ItemProperty HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\* 
                             Start-Process "$($skyrim.installPath)\US\$folderName\ModOrganizer.exe"
                             Start-Sleep -Seconds 5
                             Stop-Process -Name ModOrganizer
-                            [Windows.Forms.MessageBox]::Show("The installer will now clean your DLC. Just dismiss the developer message, or any error messages that pop up. The DLC should still get cleaned","Ultimate Skyrim Install", [Windows.Forms.MessageBoxButtons]::OK, [Windows.Forms.MessageBoxIcon]::Information)
                             $modOrganizerIni = (Get-Content -Path "$($skyrim.installPath)\US\$folderName\ModOrganizer.ini")
                             foreach($line in $modOrganizerIni)
                             {
@@ -380,36 +535,8 @@ if(Get-ItemProperty HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\* 
                             $newEXEs = $newEXEs + "size=$($i-1)"
                             (Get-Content -Path "$($skyrim.installPath)\US\$folderName\ModOrganizer.ini" -Raw) -replace "size=$numberOfEXE",$newEXEs | Set-Content -Path "$($skyrim.installPath)\US\$folderName\ModOrganizer.ini"
                             (Get-Content -Path "$($skyrim.installPath)\US\$folderName\ModOrganizer.ini" -Raw) + "[Settings]`r`nlanguage=en`r`noverwritingLooseFilesColor=@Variant(\0\0\0\x43\x1@@\xff\xff\0\0\0\0\0\0)`r`noverwrittenLooseFilesColor=@Variant(\0\0\0\x43\x1@@\0\0\xff\xff\0\0\0\0)`r`noverwritingArchiveFilesColor=@Variant(\0\0\0\x43\x1@@\xff\xff\0\0\xff\xff\0\0)`r`noverwrittenArchiveFilesColor=@Variant(\0\0\0\x43\x1@@\0\0\xff\xff\xff\xff\0\0)`r`ncontainsPluginColor=@Variant(\0\0\0\x43\x1@@\0\0\0\0\xff\xff\0\0)`r`ncontainedColor=@Variant(\0\0\0\x43\x1@@\0\0\0\0\xff\xff\0\0)`r`ncompact_downloads=false`r`nmeta_downloads=false`r`nuse_prereleases=false`r`ncolorSeparatorScrollbars=true`r`nlog_level=1`r`ncrash_dumps_type=1`r`ncrash_dumps_max=5`r`noffline_mode=false`r`nuse_proxy=false`r`nendorsement_integration=true`r`nhide_api_counter=false`r`nload_mechanism=0`r`nhide_unchecked_plugins=false`r`nforce_enable_core_files=true`r`ndisplay_foreign=true`r`nlock_gui=false`r`narchive_parsing_experimental=false" | Set-Content -Path "$($skyrim.installPath)\US\$folderName\ModOrganizer.ini"
-                            foreach($DLC in $DLCList)
-                            {
-                                output("Cleaning $DLC.esm")
-                                $cleaning = Start-Process "$($skyrim.installPath)\US\$folderName\ModOrganizer.exe" -ArgumentList "-p `"$folderName`" `"moshortcut://:Clean $DLC`"" -PassThru
-                                Wait-Process -Id $cleaning.Id
-                            }
-                            Wait-Process -Name TES5Edit
-                            if($folderName -like "*Gamepad*"){Remove-Item "$($skyrim.installPath)\ControlMap_Custom.txt" -Force}
-                            $WshShell = New-Object -comObject WScript.Shell
-                            $Shortcut = $WshShell.CreateShortcut("$env:USERPROFILE\Desktop\Ultimate Skyrim.lnk")
-                            $targetPath = "`"$($skyrim.installPath)\US\$folderName\ModOrganizer.exe`""
-                            $Shortcut.Arguments = "-p `"$folderName`" `"moshortcut://:SKSE`""
-                            $Shortcut.TargetPath = $targetPath
-                            $shortcut.IconLocation = "$($skyrim.installPath)\TESV.exe"
-                            $Shortcut.WindowStyle = 7
-                            $Shortcut.Save()
-                            $postCompletion = [Windows.Forms.MessageBox]::Show("Congratulations! Ultimate Skyrim is installed and a shortcut has been created on your desktop! Would you like to launch Ultimate Skyrim now?","Ultimate Skyrim Install", [Windows.Forms.MessageBoxButtons]::YesNo, [Windows.Forms.MessageBoxIcon]::Exclamation)
-                            switch($postCompletion)
-                            {
-                                "Yes"
-                                {
-                                    Start-Process "`"$($skyrim.installPath)\US\$folderName\ModOrganizer.exe`"" -ArgumentList "-p `"$folderName`" `"moshortcut://:SKSE`""
-                                    $configForm.Close()
-                                }
-                                "No"
-                                {
-                                    $postCompletionNO = [Windows.Forms.MessageBox]::Show("Would you like to quit the installer?","Ultimate Skyrim Install", [Windows.Forms.MessageBoxButtons]::YesNo, [Windows.Forms.MessageBoxIcon]::Exclamation)
-                                    if($postCompletionNO -eq "Yes"){$configForm.Close()}
-                                }
-                            }
+                            [Windows.Forms.MessageBox]::Show("We can now clean your DLC. Click the buttons to install your DLC one at a time. Do not begin a cleaning until the last one has completed. Dismiss developer pop-ups if they come up. Consider supporting them!","Ultimate Skyrim Install", [Windows.Forms.MessageBoxButtons]::OK, [Windows.Forms.MessageBoxIcon]::Information)
+                            $cleanUpdate.Enabled = $true
                         }
                         "No"
                         {
@@ -418,5 +545,111 @@ if(Get-ItemProperty HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\* 
                     }
                 })
                 $configForm.Controls.Add($startAutomaton)
+
+            $cleanUpdate = New-Object System.Windows.Forms.Button
+                $cleanUpdate.Enabled = $false
+                $cleanUpdate.Text = "Clean Update.esm"
+                $cleanUpdate.Top = 200
+                $cleanUpdate.Left = 320
+                $cleanUpdate.Size = New-Object System.Drawing.Size(400,25)
+                $cleanUpdate.ADD_CLICK(
+                {
+                    output("Cleaning Update.esm")
+                    $cleaning = Start-Process "$($skyrim.installPath)\US\$folderName\ModOrganizer.exe" -ArgumentList "-p `"$folderName`" `"moshortcut://:Clean Update`"" -PassThru
+                    Start-Sleep -Seconds 15
+                    Wait-Process -Id $cleaning.Id
+                    Wait-Process TES5Edit
+                    $cleanDawnguard.Enabled = $true
+                    $cleanUpdate.Enabled = $false
+                })
+                $configForm.Controls.Add($cleanUpdate)
+
+                $cleanDawnguard = New-Object System.Windows.Forms.Button
+                $cleanDawnguard.Enabled = $false
+                $cleanDawnguard.Text = "Clean Dawnguard.esm"
+                $cleanDawnguard.Top = 230
+                $cleanDawnguard.Left = 320
+                $cleanDawnguard.Size = New-Object System.Drawing.Size(400,25)
+                $cleanDawnguard.ADD_CLICK(
+                {
+                    output("Cleaning Dawnguard.esm")
+                    $cleaning = Start-Process "$($skyrim.installPath)\US\$folderName\ModOrganizer.exe" -ArgumentList "-p `"$folderName`" `"moshortcut://:Clean Dawnguard`"" -PassThru
+                    Start-Sleep -Seconds 15
+                    Wait-Process -Id $cleaning.Id
+                    Wait-Process TES5Edit
+                    $cleanHearthfires.Enabled = $true
+                    $cleanDawnguard.Enabled = $false
+                })
+                $configForm.Controls.Add($cleanDawnguard)
+
+                $cleanHearthfires = New-Object System.Windows.Forms.Button
+                $cleanHearthfires.Enabled = $false
+                $cleanHearthfires.Text = "Clean Hearthfires.esm"
+                $cleanHearthfires.Top = 260
+                $cleanHearthfires.Left = 320
+                $cleanHearthfires.Size = New-Object System.Drawing.Size(400,25)
+                $cleanHearthfires.ADD_CLICK(
+                {
+                    output("Cleaning Hearthfires.esm")
+                    $cleaning = Start-Process "$($skyrim.installPath)\US\$folderName\ModOrganizer.exe" -ArgumentList "-p `"$folderName`" `"moshortcut://:Clean Hearthfires`"" -PassThru
+                    Start-Sleep -Seconds 15
+                    Wait-Process -Id $cleaning.Id
+                    Wait-Process TES5Edit
+                    $cleanDragonborn.Enabled = $true
+                    $cleanHearthfires.Enabled = $false
+                })
+                $configForm.Controls.Add($cleanHearthfires)
+
+                $cleanDragonborn = New-Object System.Windows.Forms.Button
+                $cleanDragonborn.Enabled = $false
+                $cleanDragonborn.Text = "Clean Dragonborn.esm"
+                $cleanDragonborn.Top = 290
+                $cleanDragonborn.Left = 320
+                $cleanDragonborn.Size = New-Object System.Drawing.Size(400,25)
+                $cleanDragonborn.ADD_CLICK(
+                {
+                    output("Cleaning Dragonborn.esm")
+                    $cleaning = Start-Process "$($skyrim.installPath)\US\$folderName\ModOrganizer.exe" -ArgumentList "-p `"$folderName`" `"moshortcut://:Clean Dragonborn`"" -PassThru
+                    Start-Sleep -Seconds 15
+                    Wait-Process -Id $cleaning.Id
+                    Wait-Process TES5Edit
+                    $startFinalize.Enabled = $true
+                    $cleanDragonborn.Enabled = $false
+                })
+                $configForm.Controls.Add($cleanDragonborn)
+
+                $startFinalize = New-Object System.Windows.Forms.Button
+                $startFinalize.Enabled = $false
+                $startFinalize.Text = "Finalize Installation"
+                $startFinalize.Top = 320
+                $startFinalize.Left = 320
+                $startFinalize.Size = New-Object System.Drawing.Size(400,25)
+                $startFinalize.ADD_CLICK(
+                {
+                    if($folderName -like "*Gamepad*"){Remove-Item "$($skyrim.installPath)\ControlMap_Custom.txt" -Force}
+                    $WshShell = New-Object -comObject WScript.Shell
+                    $Shortcut = $WshShell.CreateShortcut("$env:USERPROFILE\Desktop\Ultimate Skyrim.lnk")
+                    $targetPath = "`"$($skyrim.installPath)\US\$folderName\ModOrganizer.exe`""
+                    $Shortcut.Arguments = "-p `"$folderName`" `"moshortcut://:SKSE`""
+                    $Shortcut.TargetPath = $targetPath
+                    $shortcut.IconLocation = "$($skyrim.installPath)\TESV.exe"
+                    $Shortcut.WindowStyle = 7
+                    $Shortcut.Save()
+                    $postCompletion = [Windows.Forms.MessageBox]::Show("Congratulations! Ultimate Skyrim is installed and a shortcut has been created on your desktop! Would you like to launch Ultimate Skyrim now?","Ultimate Skyrim Install", [Windows.Forms.MessageBoxButtons]::YesNo, [Windows.Forms.MessageBoxIcon]::Exclamation)
+                    switch($postCompletion)
+                    {
+                        "Yes"
+                        {
+                            Start-Process "`"$($skyrim.installPath)\US\$folderName\ModOrganizer.exe`"" -ArgumentList "-p `"$folderName`" `"moshortcut://:SKSE`""
+                            $configForm.Close()
+                        }
+                        "No"
+                        {
+                            $postCompletionNO = [Windows.Forms.MessageBox]::Show("Would you like to quit the installer?","Ultimate Skyrim Install", [Windows.Forms.MessageBoxButtons]::YesNo, [Windows.Forms.MessageBoxIcon]::Exclamation)
+                            if($postCompletionNO -eq "Yes"){$configForm.Close()}
+                        }
+                    }
+                })
+                $configForm.Controls.Add($startFinalize)
 
     $configForm.ShowDialog()
