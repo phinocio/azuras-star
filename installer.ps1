@@ -383,7 +383,7 @@ if(Get-ItemProperty HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\* 
 
                     if (!(Test-Path "$($skyrim.installPath)\skse_loader.exe")) {
                         output("Installing SKSE...")
-                        & "$env:ProgramFiles\7-Zip\7z.exe" "x" "$([AzurasStar]::installerDownloads)\SKSE_install.7z" "-o "+[AzurasStar]::installerDownloads > $null
+                        & "$env:ProgramFiles\7-Zip\7z.exe" "x" "`"$([AzurasStar]::installerDownloads)\SKSE_install.7z`"" "-o`"$([AzurasStar]::installerDownloads)`"" > $null
                         Get-ChildItem -Path "$([AzurasStar]::installerDownloads)\skse_1_07_03" | Copy-Item -Destination $skyrim.installPath -Recurse -Container -Force
                         output("Installed SKSE")
                     }else{output("SKSE already installed") }
@@ -553,8 +553,6 @@ if(Get-ItemProperty HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\* 
                 })
                 $configForm.Controls.Add($startAutomaton)
 
-
-                $folderName = (Get-ChildItem -Path "$($skyrim.installPath)\US" | Where-Object Name -like "US*" | Where-Object Attributes -eq "Directory").Name -replace "\\", ""
                 $cleanDLCButton = New-Object System.Windows.Forms.Button
                 $cleanDLCButton.Enabled = $false
                 $cleanDLCButton.Text = "Clean DLCs"
@@ -562,6 +560,7 @@ if(Get-ItemProperty HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\* 
                 $cleanDLCButton.Left = 320
                 $cleanDLCButton.Size = New-Object System.Drawing.Size(400, 25)
                 $cleanDLCButton.ADD_CLICK({
+                    $folderName = (Get-ChildItem -Path "$($skyrim.installPath)\US" | Where-Object Name -like "US*" | Where-Object Attributes -eq "Directory").Name -replace "\\", ""
                     [Windows.Forms.MessageBox]::Show("Dismiss developer pop-ups if they come up and are preventing TES5Edit from running. Consider supporting the TES5Edit project!", [AzurasStar]::Name, [Windows.Forms.MessageBoxButtons]::OK, [Windows.Forms.MessageBoxIcon]::Information)
                     foreach($dlc in [Skyrim]::DLC) {
                         output("Cleaning $dlc.esm")
