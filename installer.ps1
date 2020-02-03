@@ -5,12 +5,13 @@ Import-Module .\src\PSClasses\PSUtils.psm1
 
 # Add Classes
 class AzurasStar {
+    static [string] $Name
     static [string] $installerPath
     static [string] $installerSrc
     static $Icon
     static [string] $installerDownloads
-
     AzurasStar() {
+        [AzurasStar]::Name = "Azura's Star"
         [AzurasStar]::installerPath = (Get-Item .\).FullName
         [AzurasStar]::installerSrc = "$([AzurasStar]::installerPath)\src"
         $iconLocation = "$([AzurasStar]::installerSrc)\img\azura.ico"
@@ -542,8 +543,7 @@ if(Get-ItemProperty HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\* 
                             $newEXEs = $newEXEs + "size=$($i-1)"
                             (Get-Content -Path "$($skyrim.installPath)\US\$folderName\ModOrganizer.ini" -Raw) -replace "size=$numberOfEXE",$newEXEs | Set-Content -Path "$($skyrim.installPath)\US\$folderName\ModOrganizer.ini"
                             (Get-Content -Path "$($skyrim.installPath)\US\$folderName\ModOrganizer.ini" -Raw) + "[Settings]`r`nlanguage=en`r`noverwritingLooseFilesColor=@Variant(\0\0\0\x43\x1@@\xff\xff\0\0\0\0\0\0)`r`noverwrittenLooseFilesColor=@Variant(\0\0\0\x43\x1@@\0\0\xff\xff\0\0\0\0)`r`noverwritingArchiveFilesColor=@Variant(\0\0\0\x43\x1@@\xff\xff\0\0\xff\xff\0\0)`r`noverwrittenArchiveFilesColor=@Variant(\0\0\0\x43\x1@@\0\0\xff\xff\xff\xff\0\0)`r`ncontainsPluginColor=@Variant(\0\0\0\x43\x1@@\0\0\0\0\xff\xff\0\0)`r`ncontainedColor=@Variant(\0\0\0\x43\x1@@\0\0\0\0\xff\xff\0\0)`r`ncompact_downloads=false`r`nmeta_downloads=false`r`nuse_prereleases=false`r`ncolorSeparatorScrollbars=true`r`nlog_level=1`r`ncrash_dumps_type=1`r`ncrash_dumps_max=5`r`noffline_mode=false`r`nuse_proxy=false`r`nendorsement_integration=true`r`nhide_api_counter=false`r`nload_mechanism=0`r`nhide_unchecked_plugins=false`r`nforce_enable_core_files=true`r`ndisplay_foreign=true`r`nlock_gui=false`r`narchive_parsing_experimental=false" | Set-Content -Path "$($skyrim.installPath)\US\$folderName\ModOrganizer.ini"
-                            [Windows.Forms.MessageBox]::Show("We can now clean your DLC. Click the buttons to install your DLC one at a time. Do not begin a cleaning until the last one has completed. Dismiss developer pop-ups if they come up. Consider supporting them!","Ultimate Skyrim Install", [Windows.Forms.MessageBoxButtons]::OK, [Windows.Forms.MessageBoxIcon]::Information)
-                            $cleanDLCButtons[0].Enabled = $true
+                            $cleanDLCButton.Enabled = $true
                         }
                         "No"
                         {
@@ -555,34 +555,25 @@ if(Get-ItemProperty HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\* 
 
 
                 $folderName = (Get-ChildItem -Path "$($skyrim.installPath)\US" | Where-Object Name -like "US*" | Where-Object Attributes -eq "Directory").Name -replace "\\", ""
-                $cleanDLCButtons = @()
-                $cleanDLCButtonTop = 170
-
-                foreach($dlc in [Skyrim]::DLC) {
-                    $cleanDLCButtonTop = $cleanDLCButtonTop + 30
-                    $cleanDLCButton = New-Object System.Windows.Forms.Button
-                    $cleanDLCButton.Enabled = $false
-                    $cleanDLCButton.Text = "Clean $dlc.esm"
-                    $cleanDLCButton.Top = $cleanDLCButtonTop
-                    $cleanDLCButton.Left = 320
-                    $cleanDLCButton.Size = New-Object System.Drawing.Size(400, 25)
-                    $cleanDLCButton.Tag = $dlc
-                    $cleanDLCButton.ADD_CLICK({
-                        $index = $([Skyrim]::DLC.IndexOf($this.Tag))
-                        output("Cleaning $($this.Tag).esm")
-                        $cleaning = Start-Process "$($skyrim.installPath)\US\$folderName\ModOrganizer.exe" -ArgumentList "-p `"$folderName`" `"moshortcut://:Clean $($this.Tag)`"" -PassThru
+                $cleanDLCButton = New-Object System.Windows.Forms.Button
+                $cleanDLCButton.Enabled = $false
+                $cleanDLCButton.Text = "Clean DLCs"
+                $cleanDLCButton.Top = 200
+                $cleanDLCButton.Left = 320
+                $cleanDLCButton.Size = New-Object System.Drawing.Size(400, 25)
+                $cleanDLCButton.ADD_CLICK({
+                    [Windows.Forms.MessageBox]::Show("Dismiss developer pop-ups if they come up and are preventing TES5Edit from running. Consider supporting the TES5Edit project!", [AzurasStar]::Name, [Windows.Forms.MessageBoxButtons]::OK, [Windows.Forms.MessageBoxIcon]::Information)
+                    foreach($dlc in [Skyrim]::DLC) {
+                        output("Cleaning $dlc.esm")
+                        $cleaning = Start-Process "$($skyrim.installPath)\US\$folderName\ModOrganizer.exe" -ArgumentList "-p `"$folderName`" `"moshortcut://:Clean $dlc`"" -PassThru
                         Wait-Process -Id $cleaning.Id
                         Wait-Process TES5Edit
-                        $cleanDLCButtons[$index].Enabled = $false
-                        if($index + 1 -eq $([Skyrim]::DLC.length)) {
-                            $script:startFinalize.Enabled = $true
-                        } else {
-                            $cleanDLCButtons[$index+1].Enabled = $true
-                        }
-                    })
-                    $cleanDLCButtons += $cleanDLCButton
-                    $configForm.Controls.Add($cleanDLCButton)
-                }
+                    }
+                    $cleanDLCButton.Enabled = $false
+                    $startFinalize.Enabled = $true
+                })
+                $configForm.Controls.Add($cleanDLCButton)
+
 
                 $startFinalize = New-Object System.Windows.Forms.Button
                 $startFinalize.Enabled = $false
