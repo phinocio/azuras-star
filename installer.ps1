@@ -24,14 +24,21 @@ class AzurasStar {
 
 class Skyrim {
 
+    static [Array] $DLC
+
     $MessageBox
-
     [String] $installPath
-
     [bool] $multipleInstalls
 
     Skyrim($messageBox) {
         $this.MessageBox = $messageBox
+
+        [Skyrim]::DLC = @(
+        "Update",
+        "Dawnguard",
+        "Hearthfires",
+        "Dragonborn"
+        )
     }
 
     setInstallationPath() {
@@ -536,7 +543,7 @@ if(Get-ItemProperty HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\* 
                             (Get-Content -Path "$($skyrim.installPath)\US\$folderName\ModOrganizer.ini" -Raw) -replace "size=$numberOfEXE",$newEXEs | Set-Content -Path "$($skyrim.installPath)\US\$folderName\ModOrganizer.ini"
                             (Get-Content -Path "$($skyrim.installPath)\US\$folderName\ModOrganizer.ini" -Raw) + "[Settings]`r`nlanguage=en`r`noverwritingLooseFilesColor=@Variant(\0\0\0\x43\x1@@\xff\xff\0\0\0\0\0\0)`r`noverwrittenLooseFilesColor=@Variant(\0\0\0\x43\x1@@\0\0\xff\xff\0\0\0\0)`r`noverwritingArchiveFilesColor=@Variant(\0\0\0\x43\x1@@\xff\xff\0\0\xff\xff\0\0)`r`noverwrittenArchiveFilesColor=@Variant(\0\0\0\x43\x1@@\0\0\xff\xff\xff\xff\0\0)`r`ncontainsPluginColor=@Variant(\0\0\0\x43\x1@@\0\0\0\0\xff\xff\0\0)`r`ncontainedColor=@Variant(\0\0\0\x43\x1@@\0\0\0\0\xff\xff\0\0)`r`ncompact_downloads=false`r`nmeta_downloads=false`r`nuse_prereleases=false`r`ncolorSeparatorScrollbars=true`r`nlog_level=1`r`ncrash_dumps_type=1`r`ncrash_dumps_max=5`r`noffline_mode=false`r`nuse_proxy=false`r`nendorsement_integration=true`r`nhide_api_counter=false`r`nload_mechanism=0`r`nhide_unchecked_plugins=false`r`nforce_enable_core_files=true`r`ndisplay_foreign=true`r`nlock_gui=false`r`narchive_parsing_experimental=false" | Set-Content -Path "$($skyrim.installPath)\US\$folderName\ModOrganizer.ini"
                             [Windows.Forms.MessageBox]::Show("We can now clean your DLC. Click the buttons to install your DLC one at a time. Do not begin a cleaning until the last one has completed. Dismiss developer pop-ups if they come up. Consider supporting them!","Ultimate Skyrim Install", [Windows.Forms.MessageBoxButtons]::OK, [Windows.Forms.MessageBoxIcon]::Information)
-                            $cleanUpdate.Enabled = $true
+                            $cleanDLCButtons[0].Enabled = $true
                         }
                         "No"
                         {
@@ -546,77 +553,36 @@ if(Get-ItemProperty HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\* 
                 })
                 $configForm.Controls.Add($startAutomaton)
 
-            $cleanUpdate = New-Object System.Windows.Forms.Button
-                $cleanUpdate.Enabled = $false
-                $cleanUpdate.Text = "Clean Update.esm"
-                $cleanUpdate.Top = 200
-                $cleanUpdate.Left = 320
-                $cleanUpdate.Size = New-Object System.Drawing.Size(400,25)
-                $cleanUpdate.ADD_CLICK(
-                {
-                    output("Cleaning Update.esm")
-                    $cleaning = Start-Process "$($skyrim.installPath)\US\$folderName\ModOrganizer.exe" -ArgumentList "-p `"$folderName`" `"moshortcut://:Clean Update`"" -PassThru
-                    Start-Sleep -Seconds 15
-                    Wait-Process -Id $cleaning.Id
-                    Wait-Process TES5Edit
-                    $cleanDawnguard.Enabled = $true
-                    $cleanUpdate.Enabled = $false
-                })
-                $configForm.Controls.Add($cleanUpdate)
 
-                $cleanDawnguard = New-Object System.Windows.Forms.Button
-                $cleanDawnguard.Enabled = $false
-                $cleanDawnguard.Text = "Clean Dawnguard.esm"
-                $cleanDawnguard.Top = 230
-                $cleanDawnguard.Left = 320
-                $cleanDawnguard.Size = New-Object System.Drawing.Size(400,25)
-                $cleanDawnguard.ADD_CLICK(
-                {
-                    output("Cleaning Dawnguard.esm")
-                    $cleaning = Start-Process "$($skyrim.installPath)\US\$folderName\ModOrganizer.exe" -ArgumentList "-p `"$folderName`" `"moshortcut://:Clean Dawnguard`"" -PassThru
-                    Start-Sleep -Seconds 15
-                    Wait-Process -Id $cleaning.Id
-                    Wait-Process TES5Edit
-                    $cleanHearthfires.Enabled = $true
-                    $cleanDawnguard.Enabled = $false
-                })
-                $configForm.Controls.Add($cleanDawnguard)
+                $folderName = (Get-ChildItem -Path "$($skyrim.installPath)\US" | Where-Object Name -like "US*" | Where-Object Attributes -eq "Directory").Name -replace "\\", ""
+                $cleanDLCButtons = @()
+                $cleanDLCButtonTop = 170
 
-                $cleanHearthfires = New-Object System.Windows.Forms.Button
-                $cleanHearthfires.Enabled = $false
-                $cleanHearthfires.Text = "Clean Hearthfires.esm"
-                $cleanHearthfires.Top = 260
-                $cleanHearthfires.Left = 320
-                $cleanHearthfires.Size = New-Object System.Drawing.Size(400,25)
-                $cleanHearthfires.ADD_CLICK(
-                {
-                    output("Cleaning Hearthfires.esm")
-                    $cleaning = Start-Process "$($skyrim.installPath)\US\$folderName\ModOrganizer.exe" -ArgumentList "-p `"$folderName`" `"moshortcut://:Clean Hearthfires`"" -PassThru
-                    Start-Sleep -Seconds 15
-                    Wait-Process -Id $cleaning.Id
-                    Wait-Process TES5Edit
-                    $cleanDragonborn.Enabled = $true
-                    $cleanHearthfires.Enabled = $false
-                })
-                $configForm.Controls.Add($cleanHearthfires)
-
-                $cleanDragonborn = New-Object System.Windows.Forms.Button
-                $cleanDragonborn.Enabled = $false
-                $cleanDragonborn.Text = "Clean Dragonborn.esm"
-                $cleanDragonborn.Top = 290
-                $cleanDragonborn.Left = 320
-                $cleanDragonborn.Size = New-Object System.Drawing.Size(400,25)
-                $cleanDragonborn.ADD_CLICK(
-                {
-                    output("Cleaning Dragonborn.esm")
-                    $cleaning = Start-Process "$($skyrim.installPath)\US\$folderName\ModOrganizer.exe" -ArgumentList "-p `"$folderName`" `"moshortcut://:Clean Dragonborn`"" -PassThru
-                    Start-Sleep -Seconds 15
-                    Wait-Process -Id $cleaning.Id
-                    Wait-Process TES5Edit
-                    $startFinalize.Enabled = $true
-                    $cleanDragonborn.Enabled = $false
-                })
-                $configForm.Controls.Add($cleanDragonborn)
+                foreach($dlc in [Skyrim]::DLC) {
+                    $cleanDLCButtonTop = $cleanDLCButtonTop + 30
+                    $cleanDLCButton = New-Object System.Windows.Forms.Button
+                    $cleanDLCButton.Enabled = $false
+                    $cleanDLCButton.Text = "Clean $dlc.esm"
+                    $cleanDLCButton.Top = $cleanDLCButtonTop
+                    $cleanDLCButton.Left = 320
+                    $cleanDLCButton.Size = New-Object System.Drawing.Size(400, 25)
+                    $cleanDLCButton.Tag = $dlc
+                    $cleanDLCButton.ADD_CLICK({
+                        $index = $([Skyrim]::DLC.IndexOf($this.Tag))
+                        output("Cleaning $($this.Tag).esm")
+                        $cleaning = Start-Process "$($skyrim.installPath)\US\$folderName\ModOrganizer.exe" -ArgumentList "-p `"$folderName`" `"moshortcut://:Clean $($this.Tag)`"" -PassThru
+                        Wait-Process -Id $cleaning.Id
+                        Wait-Process TES5Edit
+                        $cleanDLCButtons[$index].Enabled = $false
+                        if($index + 1 -eq $([Skyrim]::DLC.length)) {
+                            $script:startFinalize.Enabled = $true
+                        } else {
+                            $cleanDLCButtons[$index+1].Enabled = $true
+                        }
+                    })
+                    $cleanDLCButtons += $cleanDLCButton
+                    $configForm.Controls.Add($cleanDLCButton)
+                }
 
                 $startFinalize = New-Object System.Windows.Forms.Button
                 $startFinalize.Enabled = $false
