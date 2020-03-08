@@ -7,13 +7,8 @@ Add-Type -AssemblyName System.IO.Compression.FileSystem #Zip Compression
 Import-Module .\src\PS\PSUtils.psm1
 
 $AzurasStar = [AzurasStar]::new()
-$Skyrim = [Skyrim]::new([Windows.Forms.MessageBox])
-$Skyrim.setInstallationPath([Skyrim]::getSkyrimInstalledPaths(), $true)
-$CurrentUser = [User]::new()
-$ENB = [ENB]::new([Windows.Forms.MessageBox])
 
-#Configure and install prereqs
-#Root Form window
+#Azura's Star main form
 $configForm = New-Object System.Windows.Forms.Form
 $configForm.Width = [AzurasStar]::FormWidth
 $configForm.Height = [AzurasStar]::FormHeight
@@ -23,6 +18,7 @@ $configForm.MinimizeBox = $false
 $configForm.FormBorderStyle = 'Fixed3D'
 $configForm.Icon = [AzurasStar]::Icon
 
+#Configure debug window so subsequent dependencies can use it
 $debugConsole = New-Object System.Windows.Forms.RichTextBox
 $debugConsole.Top = 0
 $debugConsole.Left = 10
@@ -31,8 +27,13 @@ $debugConsoleWidth = [AzurasStar]::FormWidth/2 - [AzurasStar]::ColumnPadding
 $debugConsole.Size = New-Object System.Drawing.Size($debugConsoleWidth, $debugConsoleHeight)
 $debugConsole.ReadOnly = $true
 $configForm.Controls.Add($debugConsole)
-
 $AzurasStar.setMessageConsole($debugConsole)
+
+#Other dependencies
+$Skyrim = [Skyrim]::new([Windows.Forms.MessageBox],$AzurasStar)
+$Skyrim.setInstallationPath([Skyrim]::getSkyrimInstalledPaths(), $true)
+$CurrentUser = [User]::new()
+$ENB = [ENB]::new([Windows.Forms.MessageBox])
 
 $AzurasStar.writeDebugMessage("Install Path: $($Skyrim.installPath)\US")
 $AzurasStar.writeDebugMessage("Download Path: $($Skyrim.installPath)\US\Downloads")
