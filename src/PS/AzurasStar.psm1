@@ -12,6 +12,7 @@ class AzurasStar {
     static [Int32] $ButtonWidth
     [Int32] $CurrentTopOffset
     [Boolean] $firstTopOffset
+    $debugConsole
 
     AzurasStar() {
         [AzurasStar]::Name = "Azura's Star"
@@ -43,5 +44,14 @@ class AzurasStar {
         }
         $this.firstTopOffset = $false
         return $this.CurrentTopOffset
+    }
+
+    setMessageConsole($console) {
+        $this.debugConsole = $console
+    }
+
+    writeDebugMessage($text) {
+        $this.debugConsole.AppendText("$text `r`n")
+        $this.debugConsole.ScrollToCaret()
     }
 }
