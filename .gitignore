@@ -1,5 +1,6 @@
 /releases
 Downloads
+node_modules
 
 # IDEs
 .idea

@@ -158,7 +158,7 @@ class Skyrim {
         Start-Sleep -Seconds 5
         Stop-Process -Name ModOrganizer
         $modOrganizerIni = (Get-Content -Path "$($this.installPath)\US\$modInstallPath\ModOrganizer.ini")
-        $numberOfEXE = ""
+        $numberOfEXE = 0
         foreach($line in $modOrganizerIni) {
             if($line -like "size=*") {
                 $temp = [int]($line -replace "size=", "")
