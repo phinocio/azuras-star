@@ -110,12 +110,12 @@ class ENB {
         $modInstallPath = [AzurasStar]::getModInstallPath($this.Skyrim.installPath)
         Copy-Item -Path "$([AzurasStar]::installerSrc)\ini\$($this.currentPreset)\Skyrim.ini" -Destination "$($this.Skyrim.installPath)\US\$modInstallPath\profiles\$modInstallPath\Skyrim.ini" -Force
         Copy-Item -Path "$([AzurasStar]::installerSrc)\ini\$($this.currentPreset)\SkyrimPrefs.ini" -Destination "$($this.Skyrim.installPath)\US\$modInstallPath\profiles\$modInstallPath\SkyrimPrefs.ini" -Force
-        foreach($file in (Get-ChildItem "$([AzurasStar]::installerSrc)\ENB" -Recurse)) {
+        foreach($file in (Get-ChildItem "$([AzurasStar]::installerSrc)\ENB")) {
             Copy-Item -Path $file.FullName -Destination "$($this.Skyrim.installPath)" -Force
         }
         Remove-Item -Path "$($this.Skyrim.installPath)\US\$modInstallPath\mods\Snowfall Weathers\ENB Files - empty into Skyrim Directory\enblocal.ini" -ErrorAction SilentlyContinue
         foreach($file in (Get-ChildItem "$($this.Skyrim.installPath)\US\$modInstallPath\mods\Snowfall Weathers\ENB Files - empty into Skyrim Directory")) {
-            Copy-Item -Path $file.FullName -Destination "$($this.Skyrim.installPath)" -Force -Recurse -Container
+            Copy-Item -Path $file.FullName -Destination "$($this.Skyrim.installPath)" -Force -Container
         }
         $this.AzurasStar.writeDebugMessage("Finished configuring ENB")
     }
