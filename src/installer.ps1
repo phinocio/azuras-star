@@ -48,8 +48,11 @@ switch($CurrentUser.isJavaInstalled() -eq $true) {
         $configFormPreReqsJava.Left = [AzurasStar]::RightColumn
         $configFormPreReqsJava.Size = New-Object System.Drawing.Size([AzurasStar]::ButtonWidth, [AzurasStar]::ButtonHeight)
         $configFormPreReqsJava.ADD_CLICK({
-            Start-Process "$([AzurasStar]::installerSrc)\bin\jre-8u231-windows-x64.exe"
+            $AzurasStar.writeDebugMessage("Downloading Java")
+            Invoke-WebRequest -Uri "https://sdlc-esd.oracle.com/ESD6/JSCDL/jdk/8u241-b07/1f5b5a70bf22433b84d0e960903adac8/JavaSetup8u241.exe?GroupName=JSC&FilePath=/ESD6/JSCDL/jdk/8u241-b07/1f5b5a70bf22433b84d0e960903adac8/JavaSetup8u241.exe&BHost=javadl.sun.com&File=JavaSetup8u241.exe&AuthParam=1584862341_5dd22b8a16b6740dd92fdb9bf0720093&ext=.exe" -OutFile "$([AzurasStar]::installerSrc)\bin\javaInstall.exe"
             $AzurasStar.writeDebugMessage("Installing Java")
+            Start-Process "$([AzurasStar]::installerSrc)\bin\javaInstall.exe" | Wait-Process
+            Remove-Item "$([AzurasStar]::installerSrc)\bin\javaInstall.exe"
         })
         $configForm.Controls.Add($configFormPreReqsJava)
         $configFormPreReqsJava.Text = "Install Java"
@@ -66,8 +69,11 @@ switch($CurrentUser.is7ZipInstalled() -eq $true) {
         $configFormPreReqs7zip.Left = [AzurasStar]::RightColumn
         $configFormPreReqs7zip.Size = New-Object System.Drawing.Size([AzurasStar]::ButtonWidth, [AzurasStar]::ButtonHeight)
         $configFormPreReqs7zip.ADD_CLICK({
-            Start-Process "$([AzurasStar]::installerSrc)\bin\7z1900-x64.exe"
-            $AzurasStar.writeDebugMessage("Installing 7-Zip")
+            $AzurasStar.writeDebugMessage("Downloading 7Zip")
+            Invoke-WebRequest -Uri "https://www.7-zip.org/a/7z1900-x64.exe" -OutFile "$([AzurasStar]::installerSrc)\bin\7ZipInstall.exe"
+            $AzurasStar.writeDebugMessage("Installing 7Zip")
+            Start-Process "$([AzurasStar]::installerSrc)\bin\7ZipInstall.exe" | Wait-Process
+            Remove-Item "$([AzurasStar]::installerSrc)\bin\7ZipInstall.exe"
         })
         $configForm.Controls.Add($configFormPreReqs7zip)
 
