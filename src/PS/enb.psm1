@@ -28,9 +28,9 @@ class ENB {
 
     [int]
     getVRAM() {
-        Start-Process "$([AzurasStar]::installerPath)\src\bin\gpuz.exe" -ArgumentList "-dump $([AzurasStar]::installerPath)\src\bin\gpuinfo.xml" -Wait
-        [xml]$gpuInfo = Get-Content "$([AzurasStar]::installerPath)\src\bin\gpuinfo.xml"
-        return $gpuInfo.gpuz_dump.card.memsize
+        dxdiag.exe /dontskip /whql:off /x "$([AzurasStar]::installerPath)\src\bin\sysinfo.xml" | Wait-Process
+        [xml]$sysInfo = Get-Content "$([AzurasStar]::installerPath)\src\bin\sysinfo.xml"
+        return ($sysInfo.DxDiag.DisplayDevices.DisplayDevice[0].DedicatedMemory -replace " MB")/1024
     }
 
     [int]

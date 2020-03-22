@@ -156,6 +156,7 @@ $configFormPreReqsPreinstall.ADD_CLICK({
     $RAM = $ENB.getRAM()
     $VRAM = $ENB.getVRAM()
     $videoMemory = $ENB.getVideoMemory($RAM, $VRAM)
+    Remove-Item "$([AzurasStar]::installerPath)\src\bin\sysinfo.xml"
     $AzurasStar.writeDebugMessage("Setting enb preset")
     $AzurasStar.writeDebugMessage("RAM: $RAM")
     $AzurasStar.writeDebugMessage("VRAM: $VRAM")
