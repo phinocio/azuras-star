@@ -176,8 +176,8 @@ $configFormPreReqsPreinstall.ADD_CLICK({
     foreach($file in (Get-ChildItem -Path "$([AzurasStar]::installerSrc)\ultsky")) {
         Copy-Item -Path $file.FullName -Destination "$($Skyrim.installPath)\US\Downloads" -Force
     }
-    Copy-Item -Path "$([AzurasStar]::installerSrc)\bin\US 406hf2 Gamepad - LD Hotfix 1.auto" -Destination "$($Skyrim.installPath)\US" -Force
-    Copy-Item -Path "$([AzurasStar]::installerSrc)\bin\US 406hf2 Keyboard - LD Hotfix 1.auto" -Destination "$($Skyrim.installPath)\US" -Force
+    Copy-Item -Path "$([AzurasStar]::installerSrc)\bin\US-406hf2-Gamepad_FNIS-fix.auto" -Destination "$($Skyrim.installPath)\US" -Force
+    Copy-Item -Path "$([AzurasStar]::installerSrc)\bin\US-406hf2-Keyboard_FNIS-fix.auto" -Destination "$($Skyrim.installPath)\US" -Force
 
     $AzurasStar.writeDebugMessage("Starting manual downloads, this might take a few minutes. This sometimes causes the window to not respond even though it's still working. Be patient :)")
 
@@ -302,6 +302,8 @@ $startFinalize.ADD_CLICK({
     $ENB.configureENB()
 
     $Skyrim.cleanDLC()
+
+    $folderName = Get-ChildItem "$($Skyrim.installPath)\US\" | Where-Object Name -Like "US*" | Select-Object FullName
 
     if($folderName -like "*Gamepad*") {
         Remove-Item "$($Skyrim.installPath)\ControlMap_Custom.txt" -Force -ErrorAction Ignore
