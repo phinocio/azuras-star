@@ -30,7 +30,7 @@ class ENB {
     getVRAM() {
         dxdiag.exe /dontskip /whql:off /x "$([AzurasStar]::installerPath)\src\bin\sysinfo.xml" | Wait-Process
         [xml]$sysInfo = Get-Content "$([AzurasStar]::installerPath)\src\bin\sysinfo.xml"
-        return ($sysInfo.DxDiag.DisplayDevices.DisplayDevice[0].DedicatedMemory -replace " MB")/1024
+        return ($sysInfo.DxDiag.DisplayDevices.DisplayDevice[0].DedicatedMemory -replace " MB")
     }
 
     [int]

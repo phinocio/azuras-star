@@ -303,7 +303,7 @@ $startFinalize.ADD_CLICK({
 
     $Skyrim.cleanDLC()
 
-    $folderName = Get-ChildItem "$($Skyrim.installPath)\US\" | Where-Object Name -Like "US*" | Select-Object FullName
+    $folderName = Get-ChildItem "$($Skyrim.installPath)\US\" | Where-Object Name -Like "US*" | Where-Object Attributes -eq "Directory" | Select-Object -ExpandProperty Name
 
     if($folderName -like "*Gamepad*") {
         Remove-Item "$($Skyrim.installPath)\ControlMap_Custom.txt" -Force -ErrorAction Ignore
