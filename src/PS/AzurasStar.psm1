@@ -41,7 +41,7 @@ class AzurasStar {
     calculateNextButtonTopOffset() {
         if($this.firstTopOffset -eq $false) {
             $this.CurrentTopOffset = $this.CurrentTopOffset + [AzurasStar]::ButtonHeight + 5
-        }
+        } else {$this.CurrentTopOffset = 5}
         $this.firstTopOffset = $false
         return $this.CurrentTopOffset
     }

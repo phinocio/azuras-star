@@ -17,6 +17,7 @@ $configForm.MaximizeBox = $false
 $configForm.MinimizeBox = $false
 $configForm.FormBorderStyle = 'Fixed3D'
 $configForm.Icon = [AzurasStar]::Icon
+$configForm.BackColor = [System.Drawing.ColorTranslator]::FromHTML("#4C4C4C")
 
 #Configure debug window so subsequent dependencies can use it
 $debugConsole = New-Object System.Windows.Forms.RichTextBox
@@ -26,6 +27,7 @@ $debugConsoleHeight = [AzurasStar]::FormHeight - 50
 $debugConsoleWidth = [AzurasStar]::FormWidth/2 - [AzurasStar]::ColumnPadding
 $debugConsole.Size = New-Object System.Drawing.Size($debugConsoleWidth, $debugConsoleHeight)
 $debugConsole.ReadOnly = $true
+$debugConsole.BackColor = [System.Drawing.ColorTranslator]::FromHTML("#AAAAAA")
 $configForm.Controls.Add($debugConsole)
 $AzurasStar.setDebugConsole($debugConsole)
 
@@ -47,6 +49,7 @@ switch($CurrentUser.isJavaInstalled() -eq $true) {
         $configFormPreReqsJava.Top = $AzurasStar.calculateNextButtonTopOffset()
         $configFormPreReqsJava.Left = [AzurasStar]::RightColumn
         $configFormPreReqsJava.Size = New-Object System.Drawing.Size([AzurasStar]::ButtonWidth, [AzurasStar]::ButtonHeight)
+        $configFormPreReqsJava.BackColor = [System.Drawing.ColorTranslator]::FromHTML("#DC3D3D")
         $configFormPreReqsJava.ADD_CLICK({
             $AzurasStar.writeDebugMessage("Downloading Java")
             Invoke-WebRequest -Uri "https://sdlc-esd.oracle.com/ESD6/JSCDL/jdk/8u241-b07/1f5b5a70bf22433b84d0e960903adac8/JavaSetup8u241.exe?GroupName=JSC&FilePath=/ESD6/JSCDL/jdk/8u241-b07/1f5b5a70bf22433b84d0e960903adac8/JavaSetup8u241.exe&BHost=javadl.sun.com&File=JavaSetup8u241.exe&AuthParam=1584862341_5dd22b8a16b6740dd92fdb9bf0720093&ext=.exe" -OutFile "$([AzurasStar]::installerSrc)\bin\javaInstall.exe"
@@ -68,6 +71,7 @@ switch($CurrentUser.is7ZipInstalled() -eq $true) {
         $configFormPreReqs7zip.Top = $AzurasStar.calculateNextButtonTopOffset()
         $configFormPreReqs7zip.Left = [AzurasStar]::RightColumn
         $configFormPreReqs7zip.Size = New-Object System.Drawing.Size([AzurasStar]::ButtonWidth, [AzurasStar]::ButtonHeight)
+        $configFormPreReqs7zip.BackColor = [System.Drawing.ColorTranslator]::FromHTML("#DC3D3D")
         $configFormPreReqs7zip.ADD_CLICK({
             $AzurasStar.writeDebugMessage("Downloading 7Zip")
             Invoke-WebRequest -Uri "https://www.7-zip.org/a/7z1900-x64.exe" -OutFile "$([AzurasStar]::installerSrc)\bin\7ZipInstall.exe"
@@ -85,6 +89,8 @@ $configFormPreReqsSkyrim.Text = "Run Skyrim once"
 $configFormPreReqsSkyrim.Top = $AzurasStar.calculateNextButtonTopOffset()
 $configFormPreReqsSkyrim.Left = [AzurasStar]::RightColumn
 $configFormPreReqsSkyrim.Size = New-Object System.Drawing.Size([AzurasStar]::ButtonWidth, [AzurasStar]::ButtonHeight)
+$configFormPreReqsSkyrim.BackColor = [System.Drawing.ColorTranslator]::FromHTML("#DC3D3D")
+$configFormPreReqsSkyrim.ForeColor = [System.Drawing.ColorTranslator]::FromHTML("#EAEAEA")
 $configFormPreReqsSkyrim.ADD_CLICK({
     [Windows.Forms.MessageBox]::Show("When Skyrim launches, let it automatically detect your settings, then launch to the main menu. Then you can exit Skyrim and come back here to run the Preinstall.", "Ultimate Skyrim Install", [Windows.Forms.MessageBoxButtons]::OK, [Windows.Forms.MessageBoxIcon]::Information)
     $AzurasStar.writeDebugMessage("Launching Skyrim for first time set up")
@@ -112,6 +118,7 @@ $configFormPreReqsPreinstall.Text = "Run Preinstall"
 $configFormPreReqsPreinstall.Top = $AzurasStar.calculateNextButtonTopOffset()
 $configFormPreReqsPreinstall.Left = [AzurasStar]::RightColumn
 $configFormPreReqsPreinstall.Size = New-Object System.Drawing.Size([AzurasStar]::ButtonWidth, [AzurasStar]::ButtonHeight)
+$configFormPreReqsPreinstall.BackColor = [System.Drawing.ColorTranslator]::FromHTML("#DC3D3D")
 $configFormPreReqsPreinstall.ADD_CLICK({
 
     $AzurasStar.writeDebugMessage("Getting Nexus API key")
@@ -274,6 +281,7 @@ $startAutomaton.Text = "Run Automaton"
 $startAutomaton.Top = $AzurasStar.calculateNextButtonTopOffset()
 $startAutomaton.Left = [AzurasStar]::RightColumn
 $startAutomaton.Size = New-Object System.Drawing.Size([AzurasStar]::ButtonWidth, [AzurasStar]::ButtonHeight)
+$startAutomaton.BackColor = [System.Drawing.ColorTranslator]::FromHTML("#DC3D3D")
 $startAutomaton.ADD_CLICK({
     $AzurasStar.writeDebugMessage("Running Automaton")
     [Windows.Forms.MessageBox]::Show("When Automaton launches, select either Keyboard or Gamepad from $($Skyrim.installPath)\US and then copy the install and download paths into their respective fields.`r`nAllow Automaton to access your Nexus account and handle NXM links (required). If you are a Nexus premium member, Automaton can download each mod for you automatically by clicking on the switch at the top.`r`nOtherwise, click on the box with the arrow inside next to each mod to go to the download page. You can hover over the mod's name in Automaton to see which specific file needs to be downloaded.`r`nAfter all of the mods have been downloaded, click on 'Install modpack.' After Automaton finishes installing the mods, close it to continue the install process.", "Ultimate Skyrim Install", [Windows.Forms.MessageBoxButtons]::OK, [Windows.Forms.MessageBoxIcon]::Information)
@@ -297,6 +305,8 @@ $startFinalize.Text = "Finalize Installation"
 $startFinalize.Top = $AzurasStar.calculateNextButtonTopOffset()
 $startFinalize.Left = [AzurasStar]::RightColumn
 $startFinalize.Size = New-Object System.Drawing.Size([AzurasStar]::ButtonWidth, [AzurasStar]::ButtonHeight)
+$startFinalize.BackColor = [System.Drawing.ColorTranslator]::FromHTML("#DC3D3D")
+$startFinalize.ForeColor = [System.Drawing.ColorTranslator]::FromHTML("#EAEAEA")
 $startFinalize.ADD_CLICK({
 
     $ENB.configureENB()
