@@ -1,13 +1,1 @@
-/releases
-Downloads
-node_modules
-
-# IDEs
-.idea
-
-# GPU info file
-src/bin/gpuinfo.xml
-# logs
-src/bin/automaton/logs/*
-src/bin/New Text Document.txt
-AzurasStar.exe
+/node_modules/
