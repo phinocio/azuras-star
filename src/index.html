@@ -1,16 +1,52 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <meta charset="utf-8">
-    <title>Test</title>
-    <script>const fs = require('fs');</script>
-    <link rel="stylesheet" type="text/css" href="../node_modules/bootstrap/dist/css/bootstrap.min.css">
 
-  </head>
-  <body>
-    <h1 id="bruh"></h1>
-    <button onclick="test()">Test</button>
+  <head>
+    <!--Header info-->
+    <meta charset="utf-8">
+    <title>Azura's Star</title>
+
+    <!--Require modules-->>
+    <script>
+      const fs = require('fs');
+      const nodePS = require('node-powershell');
+        //init powershell console
+        const ps = new nodePS ({
+          executionPolicy: 'Bypass',
+          noProfile: true
+        })
+      const shell = require('electron').shell;
+    </script>
+    <!--Load Scripts-->
     <script src='./renderer.js'></script>
-  </body>
+    <script src='./JS/checkPrereqs.js'></script>
+    <!--Preload script-->
+    <script>
+      isJavaInstalled()
+      is7ZipInstalled();
+    </script>
+
+    <!--Style-->
+    <link rel="stylesheet" type="text/css" href="../node_modules/bootstrap/dist/css/bootstrap.min.css">
+  </head>
+
+  <body>
+    <h1 id='page-title'>Azura's Star</h1>
+    <div>
+      <p id='check-java' onload=""></p>
+      <p id='check-7Zip'></p>
+    </div>
+    <!--Tool buttons-->
+    <div id='buttons'>
+      <div id=''>
+        <button id='install-modpack'>Install Modpack</button>
+        <p class='button-description'>Install a modpack from a .auto file (powered by <a href='' onclick='shell.openExternal("https://github.com/metherul/Automaton")'>Automaton</a>)</p>
+      </div>
+      <div>
+        <h6>Utilities</h6>
+        <button id='' onclick='shell.openExternal("https://loadorderlibrary.com/")'>Load Order Library</button>
+        <p class='button-description'>Load Order Library is a web only alternative to modwat.ch that includes more features such as multiple load orders, comparing, and downloads.</p>
+      </div>
+    </div>
   </body>
 </html>
