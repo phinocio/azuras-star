@@ -16,35 +16,10 @@ const parsePSObjectString = PSObjectString => PSObjectString
     }
     value = value || '';
     value = value.length > 0 ? value.trim() : '';
-    return Object.assign({}, aggregator, {[key.trim()]: value})
+    return Object.assign({}, aggregator, { [key.trim()]: value });
   }, {});
-
-const getProgramInstallStatus = async program => {
-  const details = await getProgramDetailsFromPS(program);
-  console.log(details);
-  // If the object is empty, no program information can be found so return false
-  return Object.keys(details).length !== 0
-};
 
 const getProgramDetailsFromPS = async program => {
   await ps.addCommand(`return Get-ItemProperty HKLM:\\Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\* | Where-Object DisplayName -like "${program}*"`);
-  return parsePSObjectString(await ps.invoke())
-};
-
-
-const checkPreReqs = async () => {
-  const prerequisites = [
-    'Java',
-    '7-Zip'
-  ];
-
-  for (const program of prerequisites) {
-    const programInstallStatus = await getProgramInstallStatus(program);
-    if (programInstallStatus === false) {
-      console.log(`${program} is not installed`);
-    } else {
-      console.log(`${program} is installed correctly`);
-
-    }
-  }
+  return parsePSObjectString(await ps.invoke());
 };

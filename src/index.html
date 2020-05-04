@@ -43,39 +43,42 @@
       }
       .links
       {
-        cursor: pointer;
+        cursor: pointer; 
+        color:red;      
+      }
+      .links:hover
+      {
+        color:darkgoldenrod;
       }
     </style>
   </head>
-
   <body>
     <h1 id='page-title'>Azura's Star</h1>
-    <div>
-      <p id='check-java'></p>
+    <p id="load-install-info">Loading app info...</p>
+    <div id="install-info" style="display: none;">
+      <p style="float:left;" id='check-java'></p>
+      <span style="float:left;margin-right:3px;">|</span>
       <p id='check-7Zip'></p>
+      <p id='check-le'></p>
+      <p id='check-se'></p>
     </div>
     <!--Tool buttons-->
     <div id='buttons'>
       <div>
         <button id='install-modpack-button' class='utility-button'>Install Modpack</button>
-        <p id='install-modpack-description' class='button-description'>Install a modpack from a .auto file (powered by<a style=color:red;text-decoration:underline; class='links' onclick='shell.openExternal("https://github.com/metherul/Automaton")'>Automaton</a>)</p>
+        <p id='install-modpack-description' class='button-description'>Install a modpack from a .auto file (powered by<a href="#" class='links' onclick='shell.openExternal("https://github.com/metherul/Automaton")'>Automaton</a>)</p>
       </div>
 
       <div>
         <select id='select-modpack' style=float:left>
-          <option>None</option>
+          <!--Modpacks will fill this area-->
         </select>
         <button id='play-modpack' style=float:left>Play</button>
         <button id='edit-modpack-button' class='utility-button' style=float:left>Edit</button>
-        <button id='new-modpack'>New</button>
-        <p id='edit-modpack-description' class='button-description'>Play, edit, or create a modpack</p>
+        <button id='new-modpack'>Add</button>
+        <p id='edit-modpack-description' class='button-description'>Play, edit, or add an existing modpack</p>
       </div>
       
-      <div>
-        <button style='float:left' id='launch-skyrim-button' class='utility-button'>Launch Vanilla Skyrim</button>
-        <button>Change Settings</button>
-        <p id='launch-skyrim-description' class='button-description'>Launches Skyrim with no mods enabled. You can enable SKSE and ENB launching in the settings.</p>
-      </div>
       <div>
         <h6>Utilities</h6>
         <button id='' onclick='shell.openExternal("https://loadorderlibrary.com/")'>Load Order Library</button>
@@ -113,6 +116,30 @@
         {
           document.getElementById('check-7Zip').innerHTML = '7-Zip is required. <a href="" onclick="shell.openExternal(\'https://www.7-zip.org\')">Install Here.</a>';
         }
+        Promise.resolve(getProgramDetailsFromPS('The Elder Scrolls V: Skyrim')).then((value) => 
+        {
+          if(value.DisplayName)
+          {
+            document.getElementById('check-le').innerHTML = "Skyrim LE installed at:" + value.installLocation + "<button>Change</button>";
+          }
+          else
+          {
+            document.getElementById('check-le').innerHTML = 'Skyrim LE not found. <button onclick="shell.openExternal(\'steam://install/72850\')">Install through Steam.</button><button onclick="shell.openExternal(\'steam://install/72850\')">Enter Path</button>';
+          }
+          Promise.resolve(getProgramDetailsFromPS('The Elder Scrolls V: Skyrim')).then((value) => 
+          {
+            if(value.DisplayName)
+            {
+              document.getElementById('check-se').innerHTML = "Skyrim SE installed at:" + value.installLocation + "<button>Change</button>";
+            }
+            else
+            {
+              document.getElementById('check-se').innerHTML = 'Skyrim SE not found. <button onclick="shell.openExternal(\'steam://install/489830\')">Install through Steam.</button><button onclick="shell.openExternal(\'steam://install/72850\')">Enter Path</button>';
+            }
+            document.getElementById("install-info").style = "display:block;"
+            document.getElementById("load-install-info").style = "display:none;"
+          });
+        });
       });
     });
     
