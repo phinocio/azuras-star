@@ -6,7 +6,7 @@
     <meta charset="utf-8">
     <title>Azura's Star</title>
 
-    <!--Require modules-->>
+    <!--Require modules-->
     <script>
       const fs = require('fs');
       const nodePS = require('node-powershell');
@@ -19,11 +19,33 @@
     </script>
     
     <!--Load Scripts-->
-    <script src='./renderer.js'></script>
     <script src='./JS/checkPrereqs.js'></script>
 
     <!--Style-->
     <link rel="stylesheet" type="text/css" href="../node_modules/bootstrap/dist/css/bootstrap.min.css">
+    <style>
+      * {
+        padding: 5px;
+      }
+      body {
+        background-color: dimgray;
+      }
+      button 
+      {
+        border-radius: 12px;
+        background-color: orangered;
+        color: white;
+        margin-right: 5px;
+      }
+      p 
+      {
+        color: white;
+      }
+      .links
+      {
+        cursor: pointer;
+      }
+    </style>
   </head>
 
   <body>
@@ -34,9 +56,25 @@
     </div>
     <!--Tool buttons-->
     <div id='buttons'>
-      <div id=''>
-        <button id='install-modpack'>Install Modpack</button>
-        <p class='button-description'>Install a modpack from a .auto file (powered by <a href='' onclick='shell.openExternal("https://github.com/metherul/Automaton")'>Automaton</a>)</p>
+      <div>
+        <button id='install-modpack-button' class='utility-button'>Install Modpack</button>
+        <p id='install-modpack-description' class='button-description'>Install a modpack from a .auto file (powered by<a style=color:red;text-decoration:underline; class='links' onclick='shell.openExternal("https://github.com/metherul/Automaton")'>Automaton</a>)</p>
+      </div>
+
+      <div>
+        <select id='select-modpack' style=float:left>
+          <option>None</option>
+        </select>
+        <button id='play-modpack' style=float:left>Play</button>
+        <button id='edit-modpack-button' class='utility-button' style=float:left>Edit</button>
+        <button id='new-modpack'>New</button>
+        <p id='edit-modpack-description' class='button-description'>Play, edit, or create a modpack</p>
+      </div>
+      
+      <div>
+        <button style='float:left' id='launch-skyrim-button' class='utility-button'>Launch Vanilla Skyrim</button>
+        <button>Change Settings</button>
+        <p id='launch-skyrim-description' class='button-description'>Launches Skyrim with no mods enabled. You can enable SKSE and ENB launching in the settings.</p>
       </div>
       <div>
         <h6>Utilities</h6>
@@ -47,34 +85,46 @@
   </body>
   <!--Onload script-->
   <script>
+    //Check if Java / 7-Zip is installed
     Promise.resolve(getProgramDetailsFromPS('Java')).then((value) => 
     {
       if(value.DisplayName)
       {
-        if(value.DisplayName.indexOf("64bit") != -1)
+        if(value.DisplayName.indexOf("64-bit") != -1)
         {
-          document.getElementById('check-java').innerText = "Java Version: " + value.DisplayVersion
+          document.getElementById('check-java').innerText = "Java Version: " + value.DisplayVersion;
         }
         else
         {
-          document.getElementById('check-java').innerHTML = 'Java 64-Bit is required. <a href="" onclick="shell.openExternal(\'https://www.java.com/en/download/windows-64bit.jsp\')">Install Here.</a>'
+          document.getElementById('check-java').innerHTML = 'Java 64-Bit is required. <a href="" onclick="shell.openExternal(\'https://www.java.com/en/download/windows-64bit.jsp\')">Install Here.</a>';
         }
       }
       else
       {
-        document.getElementById('check-java').innerHTML = 'Java 64-Bit is required. <a href="" onclick="shell.openExternal(\'https://www.java.com/en/download/windows-64bit.jsp\')">Install Here.</a>'
+        document.getElementById('check-java').innerHTML = 'Java 64-Bit is required. <a href="" onclick="shell.openExternal(\'https://www.java.com/en/download/windows-64bit.jsp\')">Install Here.</a>';
       }
       Promise.resolve(getProgramDetailsFromPS('7-Zip')).then((value) => 
       {
-        if(value.Displayame)
+        if(value.DisplayName)
         {
-          document.getElementById('check-7Zip').innerText = "7-Zip Version: " + value.DisplayVersion
+          document.getElementById('check-7Zip').innerText = "7-Zip Version: " + value.DisplayVersion;
         }
         else
         {
-          document.getElementById('check-7Zip').innerHTML = '7-Zip is required. <a href="" onclick="shell.openExternal(\'https://www.7-zip.org\')">Install Here.</a>'
+          document.getElementById('check-7Zip').innerHTML = '7-Zip is required. <a href="" onclick="shell.openExternal(\'https://www.7-zip.org\')">Install Here.</a>';
         }
       });
     });
+    
+    //Load installed modpacks
+    let modpackInfo = require('./user/modpacks.json');
+    const modpackList = document.getElementById('select-modpack');
+    for(let modpack in modpackInfo)
+    {
+      let opt = document.createElement('option');
+      opt.value = modpack;
+      opt.innerHTML = modpack;
+      modpackList.appendChild(opt);
+    }
   </script>
 </html>
