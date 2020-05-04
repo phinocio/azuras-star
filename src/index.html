@@ -17,13 +17,10 @@
         })
       const shell = require('electron').shell;
     </script>
+    
     <!--Load Scripts-->
     <script src='./renderer.js'></script>
     <script src='./JS/checkPrereqs.js'></script>
-    <!--Preload script-->
-    <script>
-      checkPreReqs()
-    </script>
 
     <!--Style-->
     <link rel="stylesheet" type="text/css" href="../node_modules/bootstrap/dist/css/bootstrap.min.css">
@@ -32,7 +29,7 @@
   <body>
     <h1 id='page-title'>Azura's Star</h1>
     <div>
-      <p id='check-java' onload=""></p>
+      <p id='check-java'></p>
       <p id='check-7Zip'></p>
     </div>
     <!--Tool buttons-->
@@ -48,4 +45,36 @@
       </div>
     </div>
   </body>
+  <!--Onload script-->
+  <script>
+    Promise.resolve(getProgramDetailsFromPS('Java')).then((value) => 
+    {
+      if(value.DisplayName)
+      {
+        if(value.DisplayName.indexOf("64bit") != -1)
+        {
+          document.getElementById('check-java').innerText = "Java Version: " + value.DisplayVersion
+        }
+        else
+        {
+          document.getElementById('check-java').innerHTML = 'Java 64-Bit is required. <a href="" onclick="shell.openExternal(\'https://www.java.com/en/download/windows-64bit.jsp\')">Install Here.</a>'
+        }
+      }
+      else
+      {
+        document.getElementById('check-java').innerHTML = 'Java 64-Bit is required. <a href="" onclick="shell.openExternal(\'https://www.java.com/en/download/windows-64bit.jsp\')">Install Here.</a>'
+      }
+      Promise.resolve(getProgramDetailsFromPS('7-Zip')).then((value) => 
+      {
+        if(value.Displayame)
+        {
+          document.getElementById('check-7Zip').innerText = "7-Zip Version: " + value.DisplayVersion
+        }
+        else
+        {
+          document.getElementById('check-7Zip').innerHTML = '7-Zip is required. <a href="" onclick="shell.openExternal(\'https://www.7-zip.org\')">Install Here.</a>'
+        }
+      });
+    });
+  </script>
 </html>
